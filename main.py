@@ -48,6 +48,20 @@ def main() -> None:
     )
     print(mmls)
 
+    partition = max(mmls.partitions, key=lambda p: p.length)
+    print(f"Selected partition: {partition}")
+    fls = sleuthlib.fls(partition, case_insensitive=True)
+    for f in fls:
+        print(f)
+    print()
+    windows = fls["Windows"]
+    for f in windows.children():
+        print(f)
+    print()
+    system32 = windows.child("System32")
+    for f in system32.children():
+        print(f)
+
 
 if __name__ == "__main__":
     main()
