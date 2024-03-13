@@ -63,6 +63,13 @@ def main() -> None:
     for f in system32.children():
         print(f)
 
+    print()
+    config = res_fls.find_path("Windows/System32/config")
+    print("Config with find_path:", config)
+
+    config = windows.child_path("System32/config")
+    print("Config with child_path:", config)
+
 
 if __name__ == "__main__":
     main()

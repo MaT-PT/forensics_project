@@ -4,6 +4,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 from functools import cache, cached_property
+from pathlib import PurePath
 from typing import Iterator, overload
 
 from .types import FsEntryType, ImgType, PartTableType, Sectors, VsType
@@ -54,6 +55,9 @@ class Partition:
             f"({pretty_size(self.length_bytes):>5})  {self.description}"
         )
 
+    def __hash__(self) -> int:
+        return hash((self.id, self.slot, self.start, self.end, self.length, self.description))
+
 
 @dataclass(frozen=True)
 class PartitionTable:
@@ -103,6 +107,17 @@ class PartitionTable:
             "    ID : Slot     Start       (bytes)  End         (bytes)  "
             "Length      (bytes)  Description\n"
         ) + "\n".join(f"  * {str(p)}" for p in self.partitions)
+
+    def __hash__(self) -> int:
+        return hash(
+            (
+                self.image_file,
+                self.part_table_type,
+                self.offset,
+                self.sector_size,
+                tuple(self.partitions),
+            )
+        )
 
 
 @dataclass(frozen=True)
@@ -190,19 +205,27 @@ class FsEntry:
     def path(self) -> str:
         return f"{self.parent.path}/{self.name}" if self.parent else self.name
 
+    @cache
     def name_eq(self, name: str) -> bool:
         if self.case_insensitive:
             return self.name.lower() == name.lower()
         return self.name == name
 
+    @cache
     def children(self, recursive: bool = False) -> FsEntryList:
         if not self.is_directory:
             raise ValueError(f"{self.path} is not a directory")
         return fls(self.partition, self, recursive, self.case_insensitive)
 
+    @cache
     def child(self, name: str) -> FsEntry:
         children = self.children()
         return children.find_entry(name)
+
+    @cache
+    def child_path(self, path: str | PurePath) -> FsEntry:
+        children = self.children()
+        return children.find_path(path)
 
     def __str__(self) -> str:
         attribs: list[str] = []
@@ -221,11 +244,24 @@ class FsEntry:
 class FsEntryList:
     entries: list[FsEntry]
 
+    @cache
     def find_entry(self, name: str) -> FsEntry:
         res = next((f for f in self.entries if f.name_eq(name)), None)
         if res is None:
             raise IndexError(f"No entry found with name {name}")
         return res
+
+    @cache
+    def find_path(self, path: str | PurePath) -> FsEntry:
+        if isinstance(path, str):
+            path = PurePath(path.replace("\\", "/"))
+        if path.is_absolute():
+            raise ValueError("Path must be relative")
+        parts = path.parts
+        current = self.find_entry(parts[0])
+        for part in parts[1:]:
+            current = current.child(part)
+        return current
 
     def __iter__(self) -> Iterator[FsEntry]:
         return iter(self.entries)
@@ -251,6 +287,9 @@ class FsEntryList:
 
     def __str__(self) -> str:
         return "\n".join(str(e) for e in self.entries)
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.entries))
 
 
 def mmls(
