@@ -27,5 +27,5 @@ line-length = 100
 
 [tool.isort]
 profile = "black"
-line-length = 100
-trailing-comma = true
+line_length = 100
+include_trailing_comma = true
