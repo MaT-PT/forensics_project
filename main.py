@@ -2,8 +2,9 @@
 
 import argparse
 
-import sleuthlib
 from argparse_utils import ListableAction, int_min
+from sleuthlib import sleuthlib
+from sleuthlib.types import IMG_TYPES, PART_TABLE_TYPES
 
 
 def main() -> None:
@@ -14,14 +15,14 @@ def main() -> None:
     parser.add_argument(
         "-t",
         action=ListableAction,
-        choices=sleuthlib.PART_TABLE_TYPES,
+        choices=PART_TABLE_TYPES,
         help="The type of volume system (use '-t list' to list supported types)",
         metavar="vstype",
     )
     parser.add_argument(
         "-i",
         action=ListableAction,
-        choices=sleuthlib.IMG_TYPES,
+        choices=IMG_TYPES,
         help="The format of the image file (use '-i list' to list supported types)",
         metavar="imgtype",
     )
@@ -39,14 +40,35 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    mmls = sleuthlib.mmls(
+    res_mmls = sleuthlib.mmls(
         args.image,
         vstype=args.t,
         imgtype=args.i,
         sector_size=args.b,
         offset=args.o,
     )
-    print(mmls)
+    print(res_mmls)
+
+    partition = max(res_mmls.partitions, key=lambda p: p.length)
+    print(f"Selected partition: {partition}")
+    res_fls = sleuthlib.fls(partition, case_insensitive=True)
+    for f in res_fls:
+        print(f)
+    print()
+    windows = res_fls["Windows"]
+    for f in windows.children():
+        print(f)
+    print()
+    system32 = windows.child("System32")
+    for f in system32.children():
+        print(f)
+
+    print()
+    config = res_fls.find_path("Windows/System32/config")
+    print("Config with find_path:", config)
+
+    config = windows.child_path("System32/config")
+    print("Config with child_path:", config)
 
 
 if __name__ == "__main__":
