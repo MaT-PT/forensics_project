@@ -2,8 +2,9 @@
 
 import argparse
 
-import sleuthlib
 from argparse_utils import ListableAction, int_min
+from sleuthlib import sleuthlib
+from sleuthlib.types import IMG_TYPES, PART_TABLE_TYPES
 
 
 def main() -> None:
@@ -14,14 +15,14 @@ def main() -> None:
     parser.add_argument(
         "-t",
         action=ListableAction,
-        choices=sleuthlib.PART_TABLE_TYPES,
+        choices=PART_TABLE_TYPES,
         help="The type of volume system (use '-t list' to list supported types)",
         metavar="vstype",
     )
     parser.add_argument(
         "-i",
         action=ListableAction,
-        choices=sleuthlib.IMG_TYPES,
+        choices=IMG_TYPES,
         help="The format of the image file (use '-i list' to list supported types)",
         metavar="imgtype",
     )
@@ -39,22 +40,22 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    mmls = sleuthlib.mmls(
+    res_mmls = sleuthlib.mmls(
         args.image,
         vstype=args.t,
         imgtype=args.i,
         sector_size=args.b,
         offset=args.o,
     )
-    print(mmls)
+    print(res_mmls)
 
-    partition = max(mmls.partitions, key=lambda p: p.length)
+    partition = max(res_mmls.partitions, key=lambda p: p.length)
     print(f"Selected partition: {partition}")
-    fls = sleuthlib.fls(partition, case_insensitive=True)
-    for f in fls:
+    res_fls = sleuthlib.fls(partition, case_insensitive=True)
+    for f in res_fls:
         print(f)
     print()
-    windows = fls["Windows"]
+    windows = res_fls["Windows"]
     for f in windows.children():
         print(f)
     print()
