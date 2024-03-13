@@ -78,9 +78,9 @@ class Partition:
 
     def __str__(self) -> str:
         return (
-            f"{self.id:03}: {self.slot:7} {self.start:011} ({pretty_size(self.start_bytes)}) "
-            f"{self.end:011} ({pretty_size(self.end_bytes)}) {self.length:011} "
-            f"({pretty_size(self.length_bytes)}) {self.description}"
+            f"{self.id:03}: {self.slot:7}  {self.start:>11} ({pretty_size(self.start_bytes):>5})  "
+            f"{self.end:>11} ({pretty_size(self.end_bytes):>5})  {self.length:>11} "
+            f"({pretty_size(self.length_bytes):>5})  {self.description}"
         )
 
 
@@ -128,8 +128,8 @@ class PartitionTable:
             f"* Offset: {self.offset} ({self.offset_bytes} B)\n"
             f"* Sector size: {self.sector_size} B\n"
             "* Partitions:\n"
-            "    ID : Slot    Start       (bytes) End         (bytes) "
-            "Length      (bytes) Description\n"
+            "    ID : Slot     Start       (bytes)  End         (bytes)  "
+            "Length      (bytes)  Description\n"
         ) + "\n".join(f"  * {str(p)}" for p in self.partitions)
 
 
