@@ -4,11 +4,9 @@ import re
 import subprocess
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import NewType
+from typing import Literal, NewType, TypeAlias
 
 from utils import pretty_size
-
-Sectors = NewType("Sectors", int)
 
 PART_TABLE_TYPES = {
     "dos": "DOS Partition Table",
@@ -17,6 +15,22 @@ PART_TABLE_TYPES = {
     "sun": "Sun Volume Table of Contents (Solaris)",
     "gpt": "GUID Partition Table (EFI)",
 }
+
+IMG_TYPES = {
+    "raw": "Single or split raw file (dd)",
+    "aff": "Advanced Forensic Format",
+    "afd": "AFF Multiple File",
+    "afm": "AFF with external metadata",
+    "afflib": "All AFFLIB image formats (including beta ones)",
+    "ewf": "Expert Witness Format (EnCase)",
+    "vmdk": "Virtual Machine Disk (VmWare, Virtual Box)",
+    "vhd": "Virtual Hard Drive (Microsoft)",
+}
+
+Sectors = NewType("Sectors", int)
+
+VsType: TypeAlias = Literal["dos", "mac", "bsd", "sun", "gpt"]
+ImgType: TypeAlias = Literal["raw", "aff", "afd", "afm", "afflib", "ewf", "vmdk", "vhd"]
 
 
 class PartTableType(StrEnum):
@@ -133,7 +147,27 @@ class PartitionTable:
         ) + "\n".join(f"  * {str(p)}" for p in self.partitions)
 
 
-def mmls(image_file: str, offset: int = 0) -> PartitionTable:
-    res = subprocess.check_output(["mmls", "-o", str(offset), image_file], encoding="utf-8")
-    print(res)
-    return PartitionTable.from_str(res)
+def mmls(
+    image_file: str,
+    vstype: VsType | None = None,
+    imgtype: ImgType | None = None,
+    sector_size: int | None = None,
+    offset: int | None = None,
+) -> PartitionTable | None:
+    args: list[str] = []
+    if vstype is not None:
+        args += ["-t", vstype]
+    if imgtype is not None:
+        args += ["-i", imgtype]
+    if sector_size is not None:
+        args += ["-b", str(sector_size)]
+    if offset is not None:
+        args += ["-o", str(offset)]
+    args.append(image_file)
+    try:
+        res = subprocess.check_output(["mmls"] + args, encoding="utf-8")
+        print(res)
+        return PartitionTable.from_str(res)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running mmls: {e}")
+        exit(e.returncode)
