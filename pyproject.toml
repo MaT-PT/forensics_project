@@ -24,3 +24,8 @@ show_traceback = true
 
 [tool.black]
 line-length = 100
+
+[tool.isort]
+profile = "black"
+line_length = 100
+include_trailing_comma = true
