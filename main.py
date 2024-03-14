@@ -3,7 +3,7 @@
 import argparse
 
 from argparse_utils import ListableAction, int_min
-from sleuthlib import sleuthlib
+from sleuthlib import fls, mmls
 from sleuthlib.types import IMG_TYPES, PART_TABLE_TYPES
 
 
@@ -40,7 +40,7 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    res_mmls = sleuthlib.mmls(
+    res_mmls = mmls(
         args.image,
         vstype=args.t,
         imgtype=args.i,
@@ -51,7 +51,7 @@ def main() -> None:
 
     partition = max(res_mmls.partitions, key=lambda p: p.length)
     print(f"Selected partition: {partition}")
-    res_fls = sleuthlib.fls(partition, case_insensitive=True)
+    res_fls = fls(partition, case_insensitive=True)
     for f in res_fls:
         print(f)
     print()
