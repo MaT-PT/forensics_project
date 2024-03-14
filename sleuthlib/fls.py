@@ -97,6 +97,8 @@ class FsEntry:
         return children.find_path(path)
 
     def extract(self) -> bytes:
+        if self.is_directory:
+            raise ValueError(f"{self.path} is a directory")
         return icat(self.partition, self.meta_address)
 
     @overload

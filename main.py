@@ -78,6 +78,12 @@ def main() -> None:
         filepath, written = reg_system.save(file)
         print(f"Written {written} bytes to '{filepath}'")
 
+    try:
+        filepath, written = config.save()
+        print(f"Written {written} bytes to '{filepath}'")
+    except ValueError as e:
+        print(f"Expected error: {e}")
+
 
 if __name__ == "__main__":
     main()
