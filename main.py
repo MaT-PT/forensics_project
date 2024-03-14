@@ -4,7 +4,7 @@ import argparse
 import logging
 
 from argparse_utils import ListableAction, int_min
-from sleuthlib import fls, mmls
+from sleuthlib import mmls
 from sleuthlib.types import IMG_TYPES, PART_TABLE_TYPES
 
 logging.basicConfig(level=logging.INFO)
@@ -137,7 +137,7 @@ def main() -> None:
         print(f"Selected partition: {partition.short_desc()}")
         print()
 
-    res_fls = fls(partition, case_insensitive=not args.case_sensitive)
+    res_fls = partition.root_entries(case_insensitive=not args.case_sensitive)
     files = args.file or []
     for file in files:
         entry = res_fls.find_path(file)

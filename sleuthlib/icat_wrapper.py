@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import subprocess
 
-from .mmls import Partition
+from .mmls_types import Partition
 from .types import MetaAddress
 
 LOGGER = logging.getLogger(__name__)

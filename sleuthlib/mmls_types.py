@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import logging
 import re
-import subprocess
 from dataclasses import dataclass
 from functools import cache, cached_property
 from typing import Iterable
 
-from .types import ImgType, PartTableType, Sectors, VsType
+from . import fls_types, fls_wrapper
+from .types import ImgType, PartTableType, Sectors
 from .utils import pretty_size
 
 LOGGER = logging.getLogger(__name__)
@@ -58,6 +58,10 @@ class Partition:
     @cached_property
     def partition_number(self) -> int | None:
         return int(self.slot) if self.is_filesystem else None
+
+    @cache
+    def root_entries(self, case_insensitive: bool = True) -> fls_types.FsEntryList:
+        return fls_wrapper.fls(self, case_insensitive=case_insensitive)
 
     @cache
     def short_desc(self) -> str:
@@ -146,33 +150,3 @@ class PartitionTable:
                 tuple(self.partitions),
             )
         )
-
-
-def mmls(
-    image_files: str | Iterable[str],
-    vstype: VsType | None = None,
-    imgtype: ImgType | None = None,
-    sector_size: int | None = None,
-    offset: int | None = None,
-) -> PartitionTable:
-    args: list[str] = []
-    if vstype is not None:
-        args += ["-t", vstype]
-    if imgtype is not None:
-        args += ["-i", imgtype]
-    if sector_size is not None:
-        args += ["-b", str(sector_size)]
-    if offset is not None:
-        args += ["-o", str(offset)]
-    if isinstance(image_files, str):
-        image_files = (image_files,)
-    args.extend(image_files)
-
-    try:
-        LOGGER.debug(f"Running mmls {' '.join(args)}")
-        res = subprocess.check_output(["mmls"] + args, encoding="utf-8")
-        LOGGER.debug(f"mmls returned: {res}")
-        return PartitionTable.from_str(res, image_files, imgtype)
-    except subprocess.CalledProcessError as e:
-        print(f"Error running mmls: {e}")
-        exit(e.returncode)
