@@ -79,8 +79,8 @@ def main() -> None:
         print(f"Written {written} bytes to '{filepath}'")
 
     try:
-        filepath, written = config.save()
-        print(f"Written {written} bytes to '{filepath}'")
+        data = config.extract()
+        print("config data:", data)
     except ValueError as e:
         print(f"Expected error: {e}")
 
