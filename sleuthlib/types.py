@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import re
+from dataclasses import dataclass
 from enum import StrEnum
+from functools import cache, cached_property
 from typing import Literal, NewType, TypeAlias
 
 PART_TABLE_TYPES = {
@@ -79,3 +82,26 @@ class FsEntryType(StrEnum):
 
     def __str__(self) -> str:
         return FS_ENTRY_TYPES.get(self.value, "Unknown")
+
+
+@dataclass(frozen=True)
+class MetaAddress:
+    """Represents a metadata address in a filesystem.
+    In NTFS, this is a string in the form "1304-128-1".
+    In other filesystems, this is an integer."""
+
+    address: str
+
+    RE_NTFS_ADDRESS = re.compile(r"^\d+-\d+-\d+$")
+
+    def __post_init__(self) -> None:
+        if not (self.address.isdecimal() or MetaAddress.RE_NTFS_ADDRESS.match(self.address)):
+            raise ValueError(f"Invalid metadata address: {self.address}")
+
+    @cache
+    def is_ntfs(self) -> bool:
+        return not self.address.isdecimal()
+
+    @cached_property
+    def inode(self) -> int:
+        return int(self.address.split("-", 1)[0])
