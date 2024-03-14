@@ -4,7 +4,7 @@ import logging
 import re
 import subprocess
 from dataclasses import dataclass
-from functools import cached_property
+from functools import cache, cached_property
 from typing import Iterable
 
 from .types import ImgType, PartTableType, Sectors, VsType
@@ -50,6 +50,18 @@ class Partition:
     @cached_property
     def length_bytes(self) -> int:
         return self.partition_table.sectors_to_bytes(self.length)
+
+    @cached_property
+    def is_filesystem(self) -> bool:
+        return self.slot.isdecimal()
+
+    @cached_property
+    def partition_number(self) -> int | None:
+        return int(self.slot) if self.is_filesystem else None
+
+    @cache
+    def short_desc(self) -> str:
+        return f"{self.description} (ID {self.id}, {self.length_bytes} bytes)"
 
     def __str__(self) -> str:
         return (
@@ -104,14 +116,24 @@ class PartitionTable:
     def offset_bytes(self) -> int:
         return self.sectors_to_bytes(self.offset)
 
+    @staticmethod
+    def partlist_header() -> str:
+        return (
+            "ID : Slot     Start       (bytes)  End         (bytes)  "
+            "Length      (bytes)  Description"
+        )
+
+    @cache
+    def filesystem_partitions(self) -> list[Partition]:
+        return [p for p in self.partitions if p.is_filesystem]
+
     def __str__(self) -> str:
         return (
             f"* Type: {self.part_table_type} [{self.part_table_type.value}]\n"
             f"* Offset: {self.offset} ({self.offset_bytes} B)\n"
             f"* Sector size: {self.sector_size} B\n"
             "* Partitions:\n"
-            "    ID : Slot     Start       (bytes)  End         (bytes)  "
-            "Length      (bytes)  Description\n"
+            f"    {self.partlist_header()}\n"
         ) + "\n".join(f"  * {str(p)}" for p in self.partitions)
 
     def __hash__(self) -> int:

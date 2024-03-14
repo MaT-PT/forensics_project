@@ -106,11 +106,20 @@ class FsEntry:
         LOGGER.info(f"Extracting file '{self.path}'")
         return icat(self.partition, self.meta_address)
 
-    def save_dir(self, base_path: str | Path | None = None) -> tuple[str, int, int]:
+    @overload
+    def save_dir(self, base_path: str | Path, subdir: bool = False) -> tuple[str, int, int]: ...
+    @overload
+    def save_dir(self) -> tuple[str, int, int]: ...
+
+    def save_dir(
+        self, base_path: str | Path | None = None, subdir: bool = False
+    ) -> tuple[str, int, int]:
         if not self.is_directory:
             raise ValueError(f"'{self.path}' is not a directory")
         if base_path is not None:
             base_path = Path(base_path)
+            if subdir:
+                base_path = base_path / self.name
         else:
             base_path = Path(self.name)
         LOGGER.info(f"Saving contents of '{self.path}' to '{base_path}'")
@@ -123,18 +132,22 @@ class FsEntry:
                 nb_files += nf
                 nb_dirs += nd
             else:
-                child.save(base_path=base_path)
+                child.save_file(base_path=base_path)
                 nb_files += 1
+        LOGGER.info(
+            f"Saved {nb_files} file{'s' if nb_files > 1 else ''} and {nb_dirs} "
+            f"director{'ies' if nb_dirs > 1 else 'y'} to '{str(base_path)}'"
+        )
         return str(base_path), nb_files, nb_dirs
 
     @overload
-    def save(
+    def save_file(
         self, file: str | Path | None = None, base_path: str | Path | None = None
     ) -> tuple[str, int]: ...
     @overload
-    def save(self, file: BinaryIO) -> tuple[str, int]: ...
+    def save_file(self, file: BinaryIO) -> tuple[str, int]: ...
 
-    def save(
+    def save_file(
         self, file: str | Path | BinaryIO | None = None, base_path: str | Path | None = None
     ) -> tuple[str, int]:
         must_close = False
@@ -159,6 +172,7 @@ class FsEntry:
         try:
             data = self.extract_file()
             res = file.write(data)
+            LOGGER.info(f"Written {res} bytes to '{filepath}'")
             return filepath, res
         finally:
             if must_close:
