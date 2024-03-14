@@ -79,10 +79,13 @@ def main() -> None:
         print(f"Written {written} bytes to '{filepath}'")
 
     try:
-        data = config.extract()
+        data = config.extract_file()
         print("config data:", data)
     except ValueError as e:
         print(f"Expected error: {e}")
+
+    dirpath, nfiles, ndirs = res_fls.find_path("Windows/System32/drivers/etc").save_dir()
+    print(f"Saved {nfiles} files and {ndirs} directories to '{dirpath}'")
 
 
 if __name__ == "__main__":

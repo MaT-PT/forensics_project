@@ -4,7 +4,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 from functools import cache, cached_property
-from pathlib import PurePath
+from pathlib import Path, PurePath
 from typing import BinaryIO, Iterator, overload
 
 from .icat import icat
@@ -96,29 +96,51 @@ class FsEntry:
         children = self.children()
         return children.find_path(path)
 
-    def extract(self) -> bytes:
+    def extract_file(self) -> bytes:
         if self.is_directory:
             raise ValueError(f"{self.path} is a directory")
         return icat(self.partition, self.meta_address)
 
+    def save_dir(self, base_path: str | Path | None = None) -> tuple[str, int, int]:
+        if not self.is_directory:
+            raise ValueError(f"{self.path} is not a directory")
+        if base_path is not None:
+            base_path = Path(base_path)
+        else:
+            base_path = Path(self.name)
+        base_path.mkdir(exist_ok=True, parents=True)
+        nb_files = 0
+        nb_dirs = 1
+        for child in self.children():
+            if child.is_directory:
+                _, nf, nd = child.save_dir(base_path=base_path / child.name)
+                nb_files += nf
+                nb_dirs += nd
+            else:
+                child.save(base_path=base_path)
+                nb_files += 1
+        return str(base_path), nb_files, nb_dirs
+
     @overload
     def save(
-        self, file: str | PurePath | None = None, base_path: str | PurePath | None = None
+        self, file: str | Path | None = None, base_path: str | Path | None = None
     ) -> tuple[str, int]: ...
     @overload
     def save(self, file: BinaryIO) -> tuple[str, int]: ...
 
     def save(
-        self, file: str | PurePath | BinaryIO | None = None, base_path: str | PurePath | None = None
+        self, file: str | Path | BinaryIO | None = None, base_path: str | Path | None = None
     ) -> tuple[str, int]:
         must_close = False
         if file is None:
-            file = PurePath(self.name)
+            file = Path(self.name)
         elif isinstance(file, str):
-            file = PurePath(file)
-        if isinstance(file, PurePath):
+            file = Path(file)
+        if isinstance(file, Path):
             if base_path is not None:
-                file = PurePath(base_path) / file
+                base_path = Path(base_path)
+                base_path.mkdir(exist_ok=True, parents=True)
+                file = base_path / file
             filepath = str(file)
             file = open(file, "wb")
             must_close = True
@@ -128,7 +150,7 @@ class FsEntry:
             filepath = file.name if isinstance(file.name, str) else "unknown_file"
 
         try:
-            data = self.extract()
+            data = self.extract_file()
             res = file.write(data)
             return filepath, res
         finally:
@@ -212,7 +234,7 @@ def fls(
         args += ["-i", partition.partition_table.img_type]  # Image type
     args.append(partition.partition_table.image_file)
     if root is not None:
-        args.append(str(root.inode))
+        args.append(str(root.meta_address.address))
 
     try:
         res = subprocess.check_output(["fls"] + args, encoding="utf-8")
