@@ -56,19 +56,19 @@ def main() -> None:
         "-f",
         action="extend",
         nargs="+",
-        help="The file(s) to extract",
+        help="The file(s)/dir(s) to extract",
     )
     parser.add_argument(
         "--file-list",
         "-F",
         action="extend",
         nargs="+",
-        help="YAML file(s) containing the file(s) to extract",
+        help="YAML file(s) containing the file(s)/dir(s) to extract",
     )
     parser.add_argument(
         "--out-dir",
         "-d",
-        help="The directory to extract the file(s) to",
+        help="The directory to extract the file(s)/dir(s) to",
     )
     parser.add_argument(
         "--case-sensitive",
@@ -76,17 +76,26 @@ def main() -> None:
         action="store_true",
         help="Case-sensitive file search (default is case-insensitive)",
     )
-    parser.add_argument(
+    xgrp_verbosity = parser.add_mutually_exclusive_group()
+    xgrp_verbosity.add_argument(
+        "--silent",
+        "-s",
+        action="store_true",
+        help="Suppress output",
+    )
+    xgrp_verbosity.add_argument(
+        "--verbose",
         "-v",
         action="store_true",
         help="Verbose output",
     )
 
     args = parser.parse_args()
-    print(args)
 
-    if args.v:
+    if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+    elif args.silent:
+        logging.getLogger().setLevel(logging.CRITICAL)
 
     res_mmls = mmls(
         args.image,
@@ -124,8 +133,9 @@ def main() -> None:
         print(f"Invalid partition number: {part_num} (valid: 0-{len(partitions) - 1})")
         exit(1)
     partition = partitions[part_num]
-    print(f"Selected partition: {partition.short_desc()}")
-    print()
+    if not args.silent:
+        print(f"Selected partition: {partition.short_desc()}")
+        print()
 
     res_fls = fls(partition, case_insensitive=not args.case_sensitive)
     files = args.file or []
