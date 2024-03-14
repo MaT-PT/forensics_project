@@ -65,7 +65,7 @@ class Partition:
 
     @cache
     def short_desc(self) -> str:
-        return f"{self.description} (ID {self.id}, {self.length_bytes} bytes)"
+        return f"{self.description} (ID {self.id}, {pretty_size(self.length_bytes, False)})"
 
     def __str__(self) -> str:
         return (
