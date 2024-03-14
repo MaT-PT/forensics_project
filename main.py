@@ -70,6 +70,14 @@ def main() -> None:
     config = windows.child_path("System32/config")
     print("Config with child_path:", config)
 
+    reg_system = config.child("SYSTEM")
+    print("System registry:", reg_system)
+    filepath, written = reg_system.save()
+    print(f"Written {written} bytes to '{filepath}'")
+    with open("SYSTEM2", "wb") as file:
+        filepath, written = reg_system.save(file)
+        print(f"Written {written} bytes to '{filepath}'")
+
 
 if __name__ == "__main__":
     main()

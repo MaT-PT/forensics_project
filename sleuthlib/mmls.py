@@ -64,12 +64,13 @@ class PartitionTable:
     partitions: list[Partition]
     offset: Sectors = Sectors(0)
     sector_size: int = 512
+    img_type: ImgType | None = None
 
     RE_OFFSET = re.compile(r"^\s*Offset Sector: (\d+)\s*$")
     RE_SECTOR_SIZE = re.compile(r"^\s*Units are in (\d+)-byte sectors\s*$")
 
     @classmethod
-    def from_str(cls, s: str, image_file: str) -> PartitionTable:
+    def from_str(cls, s: str, image_file: str, imgtype: ImgType | None = None) -> PartitionTable:
         lines = s.splitlines()
         part_table_type = PartTableType.from_str(lines.pop(0))
         m = PartitionTable.RE_OFFSET.match(lines.pop(0))
@@ -80,7 +81,7 @@ class PartitionTable:
         if m is None:
             raise ValueError("Could not find sector size")
         sector_size = int(m.group(1))
-        part_table = cls(image_file, part_table_type, [], offset, sector_size)
+        part_table = cls(image_file, part_table_type, [], offset, sector_size, imgtype)
         for line in lines:
             try:
                 part = Partition.from_str(line, part_table)
@@ -139,7 +140,7 @@ def mmls(
     try:
         res = subprocess.check_output(["mmls"] + args, encoding="utf-8")
         # print(res)
-        return PartitionTable.from_str(res, image_file)
+        return PartitionTable.from_str(res, image_file, imgtype)
     except subprocess.CalledProcessError as e:
         print(f"Error running mmls: {e}")
         exit(e.returncode)

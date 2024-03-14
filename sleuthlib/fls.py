@@ -5,33 +5,11 @@ import subprocess
 from dataclasses import dataclass
 from functools import cache, cached_property
 from pathlib import PurePath
-from typing import Iterator, overload
+from typing import BinaryIO, Iterator, overload
 
+from .icat import icat
 from .mmls import Partition
-from .types import FsEntryType
-
-
-@dataclass(frozen=True)
-class MetaAddress:
-    """Represents a metadata address in a filesystem.
-    In NTFS, this is a string in the form "1304-128-1".
-    In other filesystems, this is an integer."""
-
-    address: str
-
-    RE_NTFS_ADDRESS = re.compile(r"^\d+-\d+-\d+$")
-
-    def __post_init__(self) -> None:
-        if not (self.address.isdecimal() or MetaAddress.RE_NTFS_ADDRESS.match(self.address)):
-            raise ValueError(f"Invalid metadata address: {self.address}")
-
-    @cache
-    def is_ntfs(self) -> bool:
-        return not self.address.isdecimal()
-
-    @cached_property
-    def inode(self) -> int:
-        return int(self.address.split("-", 1)[0])
+from .types import FsEntryType, MetaAddress
 
 
 @dataclass(frozen=True)
@@ -103,10 +81,10 @@ class FsEntry:
         return self.name == name
 
     @cache
-    def children(self, recursive: bool = False) -> FsEntryList:
+    def children(self) -> FsEntryList:
         if not self.is_directory:
             raise ValueError(f"{self.path} is not a directory")
-        return fls(self.partition, self, recursive, self.case_insensitive)
+        return fls(self.partition, self, self.case_insensitive)
 
     @cache
     def child(self, name: str) -> FsEntry:
@@ -117,6 +95,43 @@ class FsEntry:
     def child_path(self, path: str | PurePath) -> FsEntry:
         children = self.children()
         return children.find_path(path)
+
+    def extract(self) -> bytes:
+        return icat(self.partition, self.meta_address)
+
+    @overload
+    def save(
+        self, file: str | PurePath | None = None, base_path: str | PurePath | None = None
+    ) -> tuple[str, int]: ...
+    @overload
+    def save(self, file: BinaryIO) -> tuple[str, int]: ...
+
+    def save(
+        self, file: str | PurePath | BinaryIO | None = None, base_path: str | PurePath | None = None
+    ) -> tuple[str, int]:
+        must_close = False
+        if file is None:
+            file = PurePath(self.name)
+        elif isinstance(file, str):
+            file = PurePath(file)
+        if isinstance(file, PurePath):
+            if base_path is not None:
+                file = PurePath(base_path) / file
+            filepath = str(file)
+            file = open(file, "wb")
+            must_close = True
+        elif base_path is not None:
+            raise ValueError("Cannot specify base_path with a file-like object")
+        else:
+            filepath = file.name if isinstance(file.name, str) else "unknown_file"
+
+        try:
+            data = self.extract()
+            res = file.write(data)
+            return filepath, res
+        finally:
+            if must_close:
+                file.close()
 
     def __str__(self) -> str:
         attribs: list[str] = []
@@ -186,13 +201,13 @@ class FsEntryList:
 def fls(
     partition: Partition,
     root: FsEntry | None = None,
-    recursive: bool = False,
     case_insensitive: bool = False,
 ) -> FsEntryList:
-    args = ["-p"]  # Show full path
+    args: list[str] = []
+    # args += ["-p"]  # Show full path
     args += ["-o", str(partition.start)]  # Image offset
-    if recursive:
-        args.append("-r")
+    if partition.partition_table.img_type is not None:
+        args += ["-i", partition.partition_table.img_type]  # Image type
     args.append(partition.partition_table.image_file)
     if root is not None:
         args.append(str(root.inode))
