@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 import subprocess
 
 from .mmls import Partition
 from .types import MetaAddress
+
+LOGGER = logging.getLogger(__name__)
 
 
 def icat(partition: Partition, inode: MetaAddress) -> bytes:
@@ -16,7 +19,10 @@ def icat(partition: Partition, inode: MetaAddress) -> bytes:
     args.append(inode.address)
 
     try:
-        return subprocess.check_output(["icat"] + args)
+        LOGGER.debug(f"Running icat {' '.join(args)}")
+        res = subprocess.check_output(["icat"] + args)
+        LOGGER.debug(f"icat returned {len(res)} bytes")
+        return res
     except subprocess.CalledProcessError as e:
-        print(f"Error running fls: {e}")
+        LOGGER.critical(f"Error running icat: {e}")
         exit(e.returncode)

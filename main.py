@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
 
 from argparse_utils import ListableAction, int_min
 from sleuthlib import fls, mmls
 from sleuthlib.types import IMG_TYPES, PART_TABLE_TYPES
+
+logging.basicConfig(level=logging.INFO)
 
 
 def main() -> None:
@@ -50,18 +53,18 @@ def main() -> None:
     partition = max(res_mmls.partitions, key=lambda p: p.length)
     print(f"Selected partition: {partition}")
     res_fls = fls(partition, case_insensitive=True)
-    for f in res_fls:
-        print(f)
-    print()
+    # for f in res_fls:
+    #     print(f)
+    # print()
     windows = res_fls["Windows"]
-    for f in windows.children():
-        print(f)
-    print()
-    system32 = windows.child("System32")
-    for f in system32.children():
-        print(f)
+    # for f in windows.children():
+    #     print(f)
+    # print()
+    # system32 = windows.child("System32")
+    # for f in system32.children():
+    #     print(f)
 
-    print()
+    # print()
     config = res_fls.find_path("Windows/System32/config")
     print("Config with find_path:", config)
 

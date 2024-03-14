@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 import subprocess
 from dataclasses import dataclass
@@ -8,6 +9,8 @@ from typing import Iterable
 
 from .types import ImgType, PartTableType, Sectors, VsType
 from .utils import pretty_size
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -27,6 +30,7 @@ class Partition:
         m = Partition.RE_PARTITION.match(s)
         if m is None:
             raise ValueError(f"Invalid partition string: {s}")
+        LOGGER.debug(f"Creating Partition from string: {s}")
         id = int(m.group(1))
         slot = m.group(2)
         start = Sectors(int(m.group(3)))
@@ -90,7 +94,7 @@ class PartitionTable:
                 part = Partition.from_str(line, part_table)
                 part_table.partitions.append(part)
             except ValueError as e:
-                print(f"(skipped line: {e})")
+                LOGGER.debug(f"(Skipped line: {e})")
         return part_table
 
     def sectors_to_bytes(self, sectors: Sectors) -> int:
@@ -143,9 +147,10 @@ def mmls(
     args.extend(image_files)
 
     try:
+        LOGGER.debug(f"Running mmls {' '.join(args)}")
         res = subprocess.check_output(["mmls"] + args, encoding="utf-8")
-        # print(res)
-        return PartitionTable.from_str(res, image_file, imgtype)
+        LOGGER.debug(f"mmls returned: {res}")
+        return PartitionTable.from_str(res, image_files, imgtype)
     except subprocess.CalledProcessError as e:
         print(f"Error running mmls: {e}")
         exit(e.returncode)

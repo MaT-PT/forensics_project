@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 import subprocess
 from dataclasses import dataclass
@@ -10,6 +11,8 @@ from typing import BinaryIO, Iterator, overload
 from .icat import icat
 from .mmls import Partition
 from .types import FsEntryType, MetaAddress
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -37,6 +40,7 @@ class FsEntry:
         m = FsEntry.RE_ENTRY.match(s)
         if m is None:
             raise ValueError(f"Invalid fs entry string: {s}")
+        LOGGER.debug(f"Creating FsEntry from string: {s}")
         type_filename = FsEntryType(m.group(1))
         type_metadata = FsEntryType(m.group(2))
         is_deleted = m.group(3) is not None
@@ -83,7 +87,7 @@ class FsEntry:
     @cache
     def children(self) -> FsEntryList:
         if not self.is_directory:
-            raise ValueError(f"{self.path} is not a directory")
+            raise ValueError(f"'{self.path}' is not a directory")
         return fls(self.partition, self, self.case_insensitive)
 
     @cache
@@ -98,16 +102,18 @@ class FsEntry:
 
     def extract_file(self) -> bytes:
         if self.is_directory:
-            raise ValueError(f"{self.path} is a directory")
+            raise ValueError(f"'{self.path}' is a directory")
+        LOGGER.info(f"Extracting file '{self.path}'")
         return icat(self.partition, self.meta_address)
 
     def save_dir(self, base_path: str | Path | None = None) -> tuple[str, int, int]:
         if not self.is_directory:
-            raise ValueError(f"{self.path} is not a directory")
+            raise ValueError(f"'{self.path}' is not a directory")
         if base_path is not None:
             base_path = Path(base_path)
         else:
             base_path = Path(self.name)
+        LOGGER.info(f"Saving contents of '{self.path}' to '{base_path}'")
         base_path.mkdir(exist_ok=True, parents=True)
         nb_files = 0
         nb_dirs = 1
@@ -149,6 +155,7 @@ class FsEntry:
         else:
             filepath = file.name if isinstance(file.name, str) else "unknown_file"
 
+        LOGGER.info(f"Saving file '{self.path}' to '{filepath}'")
         try:
             data = self.extract_file()
             res = file.write(data)
@@ -178,7 +185,8 @@ class FsEntryList:
     def find_entry(self, name: str) -> FsEntry:
         res = next((f for f in self.entries if f.name_eq(name)), None)
         if res is None:
-            raise IndexError(f"No entry found with name {name}")
+            raise IndexError(f"No entry found with name '{name}'")
+        LOGGER.debug(f"Found entry '{res}'")
         return res
 
     @cache
@@ -237,8 +245,9 @@ def fls(
         args.append(str(root.meta_address.address))
 
     try:
+        LOGGER.debug(f"Running fls {' '.join(args)}")
         res = subprocess.check_output(["fls"] + args, encoding="utf-8")
-        # print(res)
+        LOGGER.debug(f"fls returned: {res}")
         return FsEntryList(
             [FsEntry.from_str(line, partition, root, case_insensitive) for line in res.splitlines()]
         )
