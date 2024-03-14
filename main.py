@@ -9,9 +9,7 @@ from sleuthlib.types import IMG_TYPES, PART_TABLE_TYPES
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="TheSleuthKit Python Interface")
-    # TODO: Add support for multiple images
-    # parser.add_argument("image", nargs="+", help="The image(s) to analyze")
-    parser.add_argument("image", help="The image(s) to analyze")
+    parser.add_argument("image", nargs="+", help="The image(s) to analyze")
     parser.add_argument(
         "-t",
         action=ListableAction,
@@ -85,7 +83,7 @@ def main() -> None:
         print(f"Expected error: {e}")
 
     dirpath, nfiles, ndirs = res_fls.find_path("Windows/System32/drivers/etc").save_dir()
-    print(f"Saved {nfiles} files and {ndirs} directories to '{dirpath}'")
+    print(f"Saved {nfiles} file(s) and {ndirs} directorie(s) to '{dirpath}'")
 
 
 if __name__ == "__main__":

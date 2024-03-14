@@ -4,6 +4,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 from functools import cached_property
+from typing import Iterable
 
 from .types import ImgType, PartTableType, Sectors, VsType
 from .utils import pretty_size
@@ -59,7 +60,7 @@ class Partition:
 
 @dataclass(frozen=True)
 class PartitionTable:
-    image_file: str
+    image_files: tuple[str, ...]
     part_table_type: PartTableType
     partitions: list[Partition]
     offset: Sectors = Sectors(0)
@@ -70,7 +71,9 @@ class PartitionTable:
     RE_SECTOR_SIZE = re.compile(r"^\s*Units are in (\d+)-byte sectors\s*$")
 
     @classmethod
-    def from_str(cls, s: str, image_file: str, imgtype: ImgType | None = None) -> PartitionTable:
+    def from_str(
+        cls, s: str, image_files: Iterable[str], imgtype: ImgType | None = None
+    ) -> PartitionTable:
         lines = s.splitlines()
         part_table_type = PartTableType.from_str(lines.pop(0))
         m = PartitionTable.RE_OFFSET.match(lines.pop(0))
@@ -81,7 +84,7 @@ class PartitionTable:
         if m is None:
             raise ValueError("Could not find sector size")
         sector_size = int(m.group(1))
-        part_table = cls(image_file, part_table_type, [], offset, sector_size, imgtype)
+        part_table = cls(tuple(image_files), part_table_type, [], offset, sector_size, imgtype)
         for line in lines:
             try:
                 part = Partition.from_str(line, part_table)
@@ -110,7 +113,7 @@ class PartitionTable:
     def __hash__(self) -> int:
         return hash(
             (
-                self.image_file,
+                self.image_files,
                 self.part_table_type,
                 self.offset,
                 self.sector_size,
@@ -120,7 +123,7 @@ class PartitionTable:
 
 
 def mmls(
-    image_file: str,
+    image_files: str | Iterable[str],
     vstype: VsType | None = None,
     imgtype: ImgType | None = None,
     sector_size: int | None = None,
@@ -135,7 +138,9 @@ def mmls(
         args += ["-b", str(sector_size)]
     if offset is not None:
         args += ["-o", str(offset)]
-    args.append(image_file)
+    if isinstance(image_files, str):
+        image_files = (image_files,)
+    args.extend(image_files)
 
     try:
         res = subprocess.check_output(["mmls"] + args, encoding="utf-8")

@@ -12,7 +12,7 @@ def icat(partition: Partition, inode: MetaAddress) -> bytes:
     args += ["-o", str(partition.start)]  # Image offset
     if partition.partition_table.img_type is not None:
         args += ["-i", partition.partition_table.img_type]  # Image type
-    args.append(partition.partition_table.image_file)
+    args.extend(partition.partition_table.image_files)
     args.append(inode.address)
 
     try:
