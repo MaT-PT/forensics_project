@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import logging
 import re
-import subprocess
 from dataclasses import dataclass
 from functools import cache, cached_property
-from pathlib import PurePath
+from pathlib import Path, PurePath
 from typing import BinaryIO, Iterator, overload
 
-from .icat import icat
-from .mmls import Partition
+from . import fls_wrapper, icat_wrapper
+from .mmls_types import Partition
 from .types import FsEntryType, MetaAddress
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -37,6 +39,7 @@ class FsEntry:
         m = FsEntry.RE_ENTRY.match(s)
         if m is None:
             raise ValueError(f"Invalid fs entry string: {s}")
+        LOGGER.debug(f"Creating FsEntry from string: {s}")
         type_filename = FsEntryType(m.group(1))
         type_metadata = FsEntryType(m.group(2))
         is_deleted = m.group(3) is not None
@@ -83,8 +86,8 @@ class FsEntry:
     @cache
     def children(self) -> FsEntryList:
         if not self.is_directory:
-            raise ValueError(f"{self.path} is not a directory")
-        return fls(self.partition, self, self.case_insensitive)
+            raise ValueError(f"'{self.path}' is not a directory")
+        return fls_wrapper.fls(self.partition, self, self.case_insensitive)
 
     @cache
     def child(self, name: str) -> FsEntry:
@@ -96,29 +99,66 @@ class FsEntry:
         children = self.children()
         return children.find_path(path)
 
-    def extract(self) -> bytes:
+    def extract_file(self) -> bytes:
         if self.is_directory:
-            raise ValueError(f"{self.path} is a directory")
-        return icat(self.partition, self.meta_address)
+            raise ValueError(f"'{self.path}' is a directory")
+        LOGGER.info(f"Extracting file '{self.path}'")
+        return icat_wrapper.icat(self.partition, self.meta_address)
 
     @overload
-    def save(
-        self, file: str | PurePath | None = None, base_path: str | PurePath | None = None
+    def save_dir(self, base_path: str | Path, subdir: bool = False) -> tuple[str, int, int]: ...
+    @overload
+    def save_dir(self) -> tuple[str, int, int]: ...
+
+    def save_dir(
+        self, base_path: str | Path | None = None, subdir: bool = False
+    ) -> tuple[str, int, int]:
+        if not self.is_directory:
+            raise ValueError(f"'{self.path}' is not a directory")
+        if base_path is not None:
+            base_path = Path(base_path)
+            if subdir:
+                base_path = base_path / self.name
+        else:
+            base_path = Path(self.name)
+        LOGGER.info(f"Saving contents of '{self.path}' to '{base_path}'")
+        base_path.mkdir(exist_ok=True, parents=True)
+        nb_files = 0
+        nb_dirs = 1
+        for child in self.children():
+            if child.is_directory:
+                _, nf, nd = child.save_dir(base_path=base_path / child.name)
+                nb_files += nf
+                nb_dirs += nd
+            else:
+                child.save_file(base_path=base_path)
+                nb_files += 1
+        LOGGER.info(
+            f"Saved {nb_files} file{'s' if nb_files > 1 else ''} and {nb_dirs} "
+            f"director{'ies' if nb_dirs > 1 else 'y'} to '{base_path}'"
+        )
+        return str(base_path), nb_files, nb_dirs
+
+    @overload
+    def save_file(
+        self, file: str | Path | None = None, base_path: str | Path | None = None
     ) -> tuple[str, int]: ...
     @overload
-    def save(self, file: BinaryIO) -> tuple[str, int]: ...
+    def save_file(self, file: BinaryIO) -> tuple[str, int]: ...
 
-    def save(
-        self, file: str | PurePath | BinaryIO | None = None, base_path: str | PurePath | None = None
+    def save_file(
+        self, file: str | Path | BinaryIO | None = None, base_path: str | Path | None = None
     ) -> tuple[str, int]:
         must_close = False
         if file is None:
-            file = PurePath(self.name)
+            file = Path(self.name)
         elif isinstance(file, str):
-            file = PurePath(file)
-        if isinstance(file, PurePath):
+            file = Path(file)
+        if isinstance(file, Path):
             if base_path is not None:
-                file = PurePath(base_path) / file
+                base_path = Path(base_path)
+                base_path.mkdir(exist_ok=True, parents=True)
+                file = base_path / file
             filepath = str(file)
             file = open(file, "wb")
             must_close = True
@@ -127,9 +167,11 @@ class FsEntry:
         else:
             filepath = file.name if isinstance(file.name, str) else "unknown_file"
 
+        LOGGER.info(f"Saving file '{self.path}' to '{filepath}'")
         try:
-            data = self.extract()
+            data = self.extract_file()
             res = file.write(data)
+            LOGGER.info(f"Written {res} bytes to '{filepath}'")
             return filepath, res
         finally:
             if must_close:
@@ -156,7 +198,8 @@ class FsEntryList:
     def find_entry(self, name: str) -> FsEntry:
         res = next((f for f in self.entries if f.name_eq(name)), None)
         if res is None:
-            raise IndexError(f"No entry found with name {name}")
+            raise IndexError(f"No entry found with name '{name}'")
+        LOGGER.debug(f"Found entry '{res}'")
         return res
 
     @cache
@@ -170,6 +213,28 @@ class FsEntryList:
         for part in parts[1:]:
             current = current.child(part)
         return current
+
+    def save_all(self, base_path: str | Path | None = None) -> tuple[str, int, int]:
+        if base_path is None:
+            base_path = Path(".")
+        else:
+            base_path = Path(base_path)
+            base_path.mkdir(exist_ok=True, parents=True)
+        nb_files = 0
+        nb_dirs = 0
+        for entry in self:
+            if entry.is_directory:
+                _, nf, nd = entry.save_dir(base_path=base_path)
+                nb_files += nf
+                nb_dirs += nd
+            else:
+                entry.save_file(base_path=base_path)
+                nb_files += 1
+        LOGGER.info(
+            f"Saved {nb_files} file{'s' if nb_files > 1 else ''} and {nb_dirs} "
+            f"director{'ies' if nb_dirs > 1 else 'y'} to '{base_path}'"
+        )
+        return str(base_path), nb_files, nb_dirs
 
     def __iter__(self) -> Iterator[FsEntry]:
         return iter(self.entries)
@@ -198,28 +263,3 @@ class FsEntryList:
 
     def __hash__(self) -> int:
         return hash(tuple(self.entries))
-
-
-def fls(
-    partition: Partition,
-    root: FsEntry | None = None,
-    case_insensitive: bool = False,
-) -> FsEntryList:
-    args: list[str] = []
-    # args += ["-p"]  # Show full path
-    args += ["-o", str(partition.start)]  # Image offset
-    if partition.partition_table.img_type is not None:
-        args += ["-i", partition.partition_table.img_type]  # Image type
-    args.append(partition.partition_table.image_file)
-    if root is not None:
-        args.append(str(root.inode))
-
-    try:
-        res = subprocess.check_output(["fls"] + args, encoding="utf-8")
-        # print(res)
-        return FsEntryList(
-            [FsEntry.from_str(line, partition, root, case_insensitive) for line in res.splitlines()]
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Error running fls: {e}")
-        exit(e.returncode)

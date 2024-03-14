@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import logging
 import re
-import subprocess
 from dataclasses import dataclass
-from functools import cached_property
+from functools import cache, cached_property
+from typing import Iterable
 
-from .types import ImgType, PartTableType, Sectors, VsType
+from . import fls_types, fls_wrapper
+from .types import ImgType, PartTableType, Sectors
 from .utils import pretty_size
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -26,6 +30,7 @@ class Partition:
         m = Partition.RE_PARTITION.match(s)
         if m is None:
             raise ValueError(f"Invalid partition string: {s}")
+        LOGGER.debug(f"Creating Partition from string: {s}")
         id = int(m.group(1))
         slot = m.group(2)
         start = Sectors(int(m.group(3)))
@@ -46,6 +51,18 @@ class Partition:
     def length_bytes(self) -> int:
         return self.partition_table.sectors_to_bytes(self.length)
 
+    @cached_property
+    def is_filesystem(self) -> bool:
+        return self.slot.replace(":", "").isdecimal()
+
+    @cache
+    def root_entries(self, case_insensitive: bool = True) -> fls_types.FsEntryList:
+        return fls_wrapper.fls(self, case_insensitive=case_insensitive)
+
+    @cache
+    def short_desc(self) -> str:
+        return f"{self.description} (ID {self.id}, {pretty_size(self.length_bytes, False)})"
+
     def __str__(self) -> str:
         return (
             f"{self.id:03}: {self.slot:7}  {self.start:>11} ({pretty_size(self.start_bytes):>5})  "
@@ -59,7 +76,7 @@ class Partition:
 
 @dataclass(frozen=True)
 class PartitionTable:
-    image_file: str
+    image_files: tuple[str, ...]
     part_table_type: PartTableType
     partitions: list[Partition]
     offset: Sectors = Sectors(0)
@@ -70,7 +87,9 @@ class PartitionTable:
     RE_SECTOR_SIZE = re.compile(r"^\s*Units are in (\d+)-byte sectors\s*$")
 
     @classmethod
-    def from_str(cls, s: str, image_file: str, imgtype: ImgType | None = None) -> PartitionTable:
+    def from_str(
+        cls, s: str, image_files: Iterable[str], imgtype: ImgType | None = None
+    ) -> PartitionTable:
         lines = s.splitlines()
         part_table_type = PartTableType.from_str(lines.pop(0))
         m = PartitionTable.RE_OFFSET.match(lines.pop(0))
@@ -81,13 +100,13 @@ class PartitionTable:
         if m is None:
             raise ValueError("Could not find sector size")
         sector_size = int(m.group(1))
-        part_table = cls(image_file, part_table_type, [], offset, sector_size, imgtype)
+        part_table = cls(tuple(image_files), part_table_type, [], offset, sector_size, imgtype)
         for line in lines:
             try:
                 part = Partition.from_str(line, part_table)
                 part_table.partitions.append(part)
             except ValueError as e:
-                print(f"(skipped line: {e})")
+                LOGGER.debug(f"(Skipped line: {e})")
         return part_table
 
     def sectors_to_bytes(self, sectors: Sectors) -> int:
@@ -97,50 +116,33 @@ class PartitionTable:
     def offset_bytes(self) -> int:
         return self.sectors_to_bytes(self.offset)
 
+    @staticmethod
+    def partlist_header() -> str:
+        return (
+            "ID : Slot     Start       (bytes)  End         (bytes)  "
+            "Length      (bytes)  Description"
+        )
+
+    @cache
+    def filesystem_partitions(self) -> list[Partition]:
+        return [p for p in self.partitions if p.is_filesystem]
+
     def __str__(self) -> str:
         return (
             f"* Type: {self.part_table_type} [{self.part_table_type.value}]\n"
             f"* Offset: {self.offset} ({self.offset_bytes} B)\n"
             f"* Sector size: {self.sector_size} B\n"
             "* Partitions:\n"
-            "    ID : Slot     Start       (bytes)  End         (bytes)  "
-            "Length      (bytes)  Description\n"
+            f"    {self.partlist_header()}\n"
         ) + "\n".join(f"  * {str(p)}" for p in self.partitions)
 
     def __hash__(self) -> int:
         return hash(
             (
-                self.image_file,
+                self.image_files,
                 self.part_table_type,
                 self.offset,
                 self.sector_size,
                 tuple(self.partitions),
             )
         )
-
-
-def mmls(
-    image_file: str,
-    vstype: VsType | None = None,
-    imgtype: ImgType | None = None,
-    sector_size: int | None = None,
-    offset: int | None = None,
-) -> PartitionTable:
-    args: list[str] = []
-    if vstype is not None:
-        args += ["-t", vstype]
-    if imgtype is not None:
-        args += ["-i", imgtype]
-    if sector_size is not None:
-        args += ["-b", str(sector_size)]
-    if offset is not None:
-        args += ["-o", str(offset)]
-    args.append(image_file)
-
-    try:
-        res = subprocess.check_output(["mmls"] + args, encoding="utf-8")
-        # print(res)
-        return PartitionTable.from_str(res, image_file, imgtype)
-    except subprocess.CalledProcessError as e:
-        print(f"Error running mmls: {e}")
-        exit(e.returncode)
