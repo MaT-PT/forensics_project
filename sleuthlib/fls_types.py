@@ -135,7 +135,7 @@ class FsEntry:
                 nb_files += 1
         LOGGER.info(
             f"Saved {nb_files} file{'s' if nb_files > 1 else ''} and {nb_dirs} "
-            f"director{'ies' if nb_dirs > 1 else 'y'} to '{str(base_path)}'"
+            f"director{'ies' if nb_dirs > 1 else 'y'} to '{base_path}'"
         )
         return str(base_path), nb_files, nb_dirs
 
@@ -213,6 +213,28 @@ class FsEntryList:
         for part in parts[1:]:
             current = current.child(part)
         return current
+
+    def save_all(self, base_path: str | Path | None = None) -> tuple[str, int, int]:
+        if base_path is None:
+            base_path = Path(".")
+        else:
+            base_path = Path(base_path)
+            base_path.mkdir(exist_ok=True, parents=True)
+        nb_files = 0
+        nb_dirs = 0
+        for entry in self:
+            if entry.is_directory:
+                _, nf, nd = entry.save_dir(base_path=base_path)
+                nb_files += nf
+                nb_dirs += nd
+            else:
+                entry.save_file(base_path=base_path)
+                nb_files += 1
+        LOGGER.info(
+            f"Saved {nb_files} file{'s' if nb_files > 1 else ''} and {nb_dirs} "
+            f"director{'ies' if nb_dirs > 1 else 'y'} to '{base_path}'"
+        )
+        return str(base_path), nb_files, nb_dirs
 
     def __iter__(self) -> Iterator[FsEntry]:
         return iter(self.entries)

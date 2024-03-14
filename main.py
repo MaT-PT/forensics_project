@@ -66,6 +66,12 @@ def main() -> None:
         help="YAML file(s) containing the file(s)/dir(s) to extract",
     )
     parser.add_argument(
+        "--save-all",
+        "-a",
+        action="store_true",
+        help="Save all files and directories in the partition",
+    )
+    parser.add_argument(
         "--out-dir",
         "-d",
         help="The directory to extract the file(s)/dir(s) to",
@@ -92,6 +98,9 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    if args.save_all and (args.file or args.file_list):
+        parser.error("cannot specify --save-all and --file/--file-list at the same time")
+
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
     elif args.silent:
@@ -104,7 +113,7 @@ def main() -> None:
         sector_size=args.sector_size,
         offset=args.offset,
     )
-    if args.list or not (args.file or args.file_list):
+    if args.list or not (args.file or args.file_list or args.save_all):
         print(res_mmls)
         return
 
@@ -129,8 +138,11 @@ def main() -> None:
     else:
         part_num = args.part_num
 
-    if part_num < 0 or part_num >= len(partitions):
-        print(f"Invalid partition number: {part_num} (valid: 0-{len(partitions) - 1})")
+    if not 0 <= part_num < len(partitions):
+        valid = "0"
+        if len(partitions) > 1:
+            valid += f"-{len(partitions) - 1}"
+        print(f"Invalid partition number: {part_num} (valid: {valid})")
         exit(1)
     partition = partitions[part_num]
     if not args.silent:
@@ -138,6 +150,11 @@ def main() -> None:
         print()
 
     res_fls = partition.root_entries(case_insensitive=not args.case_sensitive)
+
+    if args.save_all:
+        res_fls.save_all(base_path=args.out_dir)
+        return
+
     files = args.file or []
     for file in files:
         entry = res_fls.find_path(file)

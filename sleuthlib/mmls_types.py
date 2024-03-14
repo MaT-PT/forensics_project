@@ -53,11 +53,7 @@ class Partition:
 
     @cached_property
     def is_filesystem(self) -> bool:
-        return self.slot.isdecimal()
-
-    @cached_property
-    def partition_number(self) -> int | None:
-        return int(self.slot) if self.is_filesystem else None
+        return self.slot.replace(":", "").isdecimal()
 
     @cache
     def root_entries(self, case_insensitive: bool = True) -> fls_types.FsEntryList:
