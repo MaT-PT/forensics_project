@@ -1,6 +1,8 @@
 from argparse import Action, ArgumentParser, ArgumentTypeError, Namespace
 from typing import Any, Callable, Literal, Mapping, Sequence, TypeVar
 
+from sleuthlib.types import IMG_TYPES, PART_TABLE_TYPES
+
 _T = TypeVar("_T")
 
 
@@ -62,3 +64,97 @@ class ListableAction(Action):
             for k, v in self._choices_map.items():
                 print(f"  {k}: {v}")
             parser.exit()
+
+
+def parse_args() -> Namespace:
+    parser = ArgumentParser(description="TheSleuthKit Python Interface")
+    parser.add_argument("image", nargs="+", help="The image(s) to analyze")
+    parser.add_argument(
+        "--vstype",
+        "-t",
+        action=ListableAction,
+        choices=PART_TABLE_TYPES,
+        help="The type of volume system (use '-t list' to list supported types)",
+    )
+    parser.add_argument(
+        "--imgtype",
+        "-i",
+        action=ListableAction,
+        choices=IMG_TYPES,
+        help="The format of the image file (use '-i list' to list supported types)",
+    )
+    parser.add_argument(
+        "--sector_size",
+        "-b",
+        type=int_min(512),
+        help="The size (in bytes) of the device sectors",
+    )
+    parser.add_argument(
+        "--offset",
+        "-o",
+        type=int_min(0),
+        help="Offset to the start of the volume that contains the partition system (in sectors)",
+    )
+    parser.add_argument(
+        "--list",
+        "-l",
+        action="store_true",
+        help="List the partitions and exit (default if no file is specified)",
+    )
+    parser.add_argument(
+        "--part-num",
+        "-p",
+        type=int_min(0),
+        help="The partition number (slot) to use",
+    )
+    parser.add_argument(
+        "--file",
+        "-f",
+        action="extend",
+        nargs="+",
+        help="The file(s)/dir(s) to extract",
+    )
+    parser.add_argument(
+        "--file-list",
+        "-F",
+        action="extend",
+        nargs="+",
+        help="YAML file(s) containing the file(s)/dir(s) to extract",
+    )
+    parser.add_argument(
+        "--save-all",
+        "-a",
+        action="store_true",
+        help="Save all files and directories in the partition",
+    )
+    parser.add_argument(
+        "--out-dir",
+        "-d",
+        help="The directory to extract the file(s)/dir(s) to",
+    )
+    parser.add_argument(
+        "--case-sensitive",
+        "-S",
+        action="store_true",
+        help="Case-sensitive file search (default is case-insensitive)",
+    )
+    xgrp_verbosity = parser.add_mutually_exclusive_group()
+    xgrp_verbosity.add_argument(
+        "--silent",
+        "-s",
+        action="store_true",
+        help="Suppress output",
+    )
+    xgrp_verbosity.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Verbose output",
+    )
+
+    args = parser.parse_args()
+
+    if args.save_all and (args.file or args.file_list):
+        parser.error("cannot specify --save-all and --file/--file-list at the same time")
+
+    return args
