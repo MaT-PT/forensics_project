@@ -6,6 +6,7 @@ import logging
 from argparse_utils import ListableAction, int_min
 from sleuthlib import mmls
 from sleuthlib.types import IMG_TYPES, PART_TABLE_TYPES
+from parse_yaml import parse_yaml
 
 logging.basicConfig(level=logging.INFO)
 
@@ -156,6 +157,18 @@ def main() -> None:
         return
 
     files = args.file or []
+    for file_list in args.file_list or []:
+        files.extend(parse_yaml(file_list))
+    files = list(dict.fromkeys(files).keys())
+
+    if not args.silent:
+        if not files:
+            print("No files to extract")
+            return
+        print("Files to extract:")
+        for file in files:
+            print(f" - {file}")
+
     for file in files:
         entry = res_fls.find_path(file)
         if entry.is_directory:
