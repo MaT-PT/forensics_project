@@ -4,5 +4,6 @@ files:
   - Windows/System32/config/SECURITY
   - Windows/System32/config/SOFTWARE
   - Windows/System32/config/SYSTEM
+  - Windows/System32/sru/SRUDB.dat
   - Users/*/NTUSER.DAT
   - Users/*/AppData/Local/Microsoft/Windows/UsrClass.dat
