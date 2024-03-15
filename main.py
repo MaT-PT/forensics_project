@@ -2,10 +2,10 @@
 
 import logging
 
-from argparse_utils import parse_args
-from parse_yaml import parse_yaml
 from sleuthlib import mmls
 from sleuthlib.utils import check_required_tools
+from utils.argparse_utils import parse_args
+from utils.parse_yaml import parse_yaml
 
 logging.basicConfig(level=logging.INFO)
 
