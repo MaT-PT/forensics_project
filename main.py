@@ -24,7 +24,7 @@ def main() -> None:
         sector_size=args.sector_size,
         offset=args.offset,
     )
-    if args.list or not (args.file or args.file_list or args.save_all):
+    if args.list_parts or not (args.file or args.file_list or args.save_all):
         print(res_mmls)
         return
 
@@ -78,6 +78,7 @@ def main() -> None:
         print("Files to extract:")
         for file in files:
             print(f" - {file}")
+        print()
 
     for file in files:
         entry = root_entries.find_path(file)

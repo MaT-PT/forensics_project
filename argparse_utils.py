@@ -1,9 +1,28 @@
 from argparse import Action, ArgumentParser, ArgumentTypeError, Namespace
+from dataclasses import dataclass
 from typing import Any, Callable, Literal, Mapping, Sequence, TypeVar
 
-from sleuthlib.types import IMG_TYPES, PART_TABLE_TYPES
+from sleuthlib.types import IMG_TYPES, PART_TABLE_TYPES, ImgType, Sectors, VsType
 
 _T = TypeVar("_T")
+
+
+@dataclass(frozen=True)
+class Arguments:
+    image: list[str]
+    vstype: VsType | None
+    imgtype: ImgType | None
+    sector_size: int | None
+    offset: Sectors | None
+    list_parts: bool
+    part_num: int | None
+    file: list[str] | None
+    file_list: list[str] | None
+    save_all: bool
+    out_dir: str | None
+    case_sensitive: bool
+    silent: bool
+    verbose: bool
 
 
 def int_min(min_val: int = 0) -> Callable[[str], int]:
@@ -66,7 +85,7 @@ class ListableAction(Action):
             parser.exit()
 
 
-def parse_args() -> Namespace:
+def parse_args() -> Arguments:
     parser = ArgumentParser(description="TheSleuthKit Python Interface")
     parser.add_argument("image", nargs="+", help="The image(s) to analyze")
     parser.add_argument(
@@ -84,7 +103,7 @@ def parse_args() -> Namespace:
         help="The format of the image file (use '-i list' to list supported types)",
     )
     parser.add_argument(
-        "--sector_size",
+        "--sector-size",
         "-b",
         type=int_min(512),
         help="The size (in bytes) of the device sectors",
@@ -96,7 +115,7 @@ def parse_args() -> Namespace:
         help="Offset to the start of the volume that contains the partition system (in sectors)",
     )
     parser.add_argument(
-        "--list",
+        "--list-parts",
         "-l",
         action="store_true",
         help="List the partitions and exit (default if no file is specified)",
@@ -157,4 +176,4 @@ def parse_args() -> Namespace:
     if args.save_all and (args.file or args.file_list):
         parser.error("cannot specify --save-all and --file/--file-list at the same time")
 
-    return args
+    return Arguments(**args.__dict__)

@@ -105,11 +105,6 @@ class FsEntry:
         LOGGER.info(f"Extracting file '{self.path}'")
         return icat_wrapper.icat(self.partition, self.meta_address)
 
-    @overload
-    def save_dir(self, base_path: str | Path, subdir: bool = False) -> tuple[str, int, int]: ...
-    @overload
-    def save_dir(self) -> tuple[str, int, int]: ...
-
     def save_dir(
         self, base_path: str | Path | None = None, subdir: bool = False
     ) -> tuple[str, int, int]:
