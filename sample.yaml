@@ -5,3 +5,4 @@ files:
   - Windows/System32/config/SOFTWARE
   - Windows/System32/config/SYSTEM
   - Users/*/NTUSER.DAT
+  - Users/*/AppData/Local/Microsoft/Windows/UsrClass.dat
