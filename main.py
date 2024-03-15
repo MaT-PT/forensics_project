@@ -5,6 +5,7 @@ import logging
 from argparse_utils import parse_args
 from parse_yaml import parse_yaml
 from sleuthlib import mmls
+from sleuthlib.utils import check_required_tools
 
 logging.basicConfig(level=logging.INFO)
 
@@ -16,6 +17,12 @@ def main() -> None:
         logging.getLogger().setLevel(logging.DEBUG)
     elif args.silent:
         logging.getLogger().setLevel(logging.CRITICAL)
+
+    try:
+        check_required_tools(args.tsk_path)
+    except FileNotFoundError as e:
+        print("Error:", e)
+        exit(1)
 
     res_mmls = mmls(
         args.image,
