@@ -10,6 +10,7 @@ _T = TypeVar("_T")
 @dataclass(frozen=True)
 class Arguments:
     image: list[str]
+    tsk_path: str | None
     vstype: VsType | None
     imgtype: ImgType | None
     sector_size: int | None
@@ -88,6 +89,11 @@ class ListableAction(Action):
 def parse_args() -> Arguments:
     parser = ArgumentParser(description="TheSleuthKit Python Interface")
     parser.add_argument("image", nargs="+", help="The image(s) to analyze")
+    parser.add_argument(
+        "--tsk-path",
+        "-T",
+        help="The directory where the TSK tools are installed (default: search in PATH)",
+    )
     parser.add_argument(
         "--vstype",
         "-t",
