@@ -69,7 +69,8 @@ def main() -> None:
     files = args.file or []
     for file_list in args.file_list or []:
         files.extend(parse_yaml(file_list))
-    files = list(dict.fromkeys(files).keys())
+    files = [f.replace("\\", "/").strip("/") for f in files]  # Normalize paths
+    files = list(dict.fromkeys(files).keys())  # Remove duplicates
 
     if not args.silent:
         if not files:
@@ -81,11 +82,14 @@ def main() -> None:
         print()
 
     for file in files:
-        entry = root_entries.find_path(file)
-        if entry.is_directory:
-            entry.save_dir(base_path=args.out_dir, subdir=True)
-        else:
-            entry.save_file(base_path=args.out_dir)
+        entries = root_entries.find_path(file)
+        for entry in entries:
+            if not args.silent:
+                print("Extracting:", entry)
+            if entry.is_directory:
+                entry.save_dir(base_path=args.out_dir, parents=True)
+            else:
+                entry.save_file(base_path=args.out_dir, parents=True)
 
 
 if __name__ == "__main__":
