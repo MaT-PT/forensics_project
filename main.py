@@ -1,106 +1,16 @@
 #!/usr/bin/env python3
 
-import argparse
 import logging
 
-from argparse_utils import ListableAction, int_min
-from sleuthlib import mmls
-from sleuthlib.types import IMG_TYPES, PART_TABLE_TYPES
+from argparse_utils import parse_args
 from parse_yaml import parse_yaml
+from sleuthlib import mmls
 
 logging.basicConfig(level=logging.INFO)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="TheSleuthKit Python Interface")
-    parser.add_argument("image", nargs="+", help="The image(s) to analyze")
-    parser.add_argument(
-        "--vstype",
-        "-t",
-        action=ListableAction,
-        choices=PART_TABLE_TYPES,
-        help="The type of volume system (use '-t list' to list supported types)",
-    )
-    parser.add_argument(
-        "--imgtype",
-        "-i",
-        action=ListableAction,
-        choices=IMG_TYPES,
-        help="The format of the image file (use '-i list' to list supported types)",
-    )
-    parser.add_argument(
-        "--sector_size",
-        "-b",
-        type=int_min(512),
-        help="The size (in bytes) of the device sectors",
-    )
-    parser.add_argument(
-        "--offset",
-        "-o",
-        type=int_min(0),
-        help="Offset to the start of the volume that contains the partition system (in sectors)",
-    )
-    parser.add_argument(
-        "--list",
-        "-l",
-        action="store_true",
-        help="List the partitions and exit (default if no file is specified)",
-    )
-    parser.add_argument(
-        "--part-num",
-        "-p",
-        type=int_min(0),
-        help="The partition number (slot) to use",
-    )
-    parser.add_argument(
-        "--file",
-        "-f",
-        action="extend",
-        nargs="+",
-        help="The file(s)/dir(s) to extract",
-    )
-    parser.add_argument(
-        "--file-list",
-        "-F",
-        action="extend",
-        nargs="+",
-        help="YAML file(s) containing the file(s)/dir(s) to extract",
-    )
-    parser.add_argument(
-        "--save-all",
-        "-a",
-        action="store_true",
-        help="Save all files and directories in the partition",
-    )
-    parser.add_argument(
-        "--out-dir",
-        "-d",
-        help="The directory to extract the file(s)/dir(s) to",
-    )
-    parser.add_argument(
-        "--case-sensitive",
-        "-S",
-        action="store_true",
-        help="Case-sensitive file search (default is case-insensitive)",
-    )
-    xgrp_verbosity = parser.add_mutually_exclusive_group()
-    xgrp_verbosity.add_argument(
-        "--silent",
-        "-s",
-        action="store_true",
-        help="Suppress output",
-    )
-    xgrp_verbosity.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Verbose output",
-    )
-
-    args = parser.parse_args()
-
-    if args.save_all and (args.file or args.file_list):
-        parser.error("cannot specify --save-all and --file/--file-list at the same time")
+    args = parse_args()
 
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
@@ -114,7 +24,7 @@ def main() -> None:
         sector_size=args.sector_size,
         offset=args.offset,
     )
-    if args.list or not (args.file or args.file_list or args.save_all):
+    if args.list_parts or not (args.file or args.file_list or args.save_all):
         print(res_mmls)
         return
 
@@ -150,10 +60,10 @@ def main() -> None:
         print(f"Selected partition: {partition.short_desc()}")
         print()
 
-    res_fls = partition.root_entries(case_insensitive=not args.case_sensitive)
+    root_entries = partition.root_entries(case_insensitive=not args.case_sensitive)
 
     if args.save_all:
-        res_fls.save_all(base_path=args.out_dir)
+        root_entries.save_all(base_path=args.out_dir)
         return
 
     files = args.file or []
@@ -168,9 +78,10 @@ def main() -> None:
         print("Files to extract:")
         for file in files:
             print(f" - {file}")
+        print()
 
     for file in files:
-        entry = res_fls.find_path(file)
+        entry = root_entries.find_path(file)
         if entry.is_directory:
             entry.save_dir(base_path=args.out_dir, subdir=True)
         else:
