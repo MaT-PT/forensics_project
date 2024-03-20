@@ -1,1 +1,2 @@
 PyYAML == 6.*
+typing-extensions == 4.*; python_version < "3.10"
