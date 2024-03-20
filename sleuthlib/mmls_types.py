@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import sys
 from dataclasses import dataclass
 from functools import cache, cached_property
 from typing import Iterable
@@ -9,6 +10,11 @@ from typing import Iterable
 from . import fls_types, fls_wrapper
 from .types import ImgType, PartTableType, Sectors
 from .utils import pretty_size
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +32,7 @@ class Partition:
     RE_PARTITION = re.compile(r"^\s*(\d+):\s*(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(.+)$")
 
     @classmethod
-    def from_str(cls, s: str, partition_table: PartitionTable) -> Partition:
+    def from_str(cls, s: str, partition_table: PartitionTable) -> Self:
         m = Partition.RE_PARTITION.match(s)
         if m is None:
             raise ValueError(f"Invalid partition string: {s}")
@@ -87,9 +93,7 @@ class PartitionTable:
     RE_SECTOR_SIZE = re.compile(r"^\s*Units are in (\d+)-byte sectors\s*$")
 
     @classmethod
-    def from_str(
-        cls, s: str, image_files: Iterable[str], imgtype: ImgType | None = None
-    ) -> PartitionTable:
+    def from_str(cls, s: str, image_files: Iterable[str], imgtype: ImgType | None = None) -> Self:
         lines = s.splitlines()
         part_table_type = PartTableType.from_str(lines.pop(0))
         m = PartitionTable.RE_OFFSET.match(lines.pop(0))

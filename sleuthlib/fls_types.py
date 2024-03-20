@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import sys
 from dataclasses import dataclass
 from functools import cache, cached_property
 from pathlib import Path, PurePath, PurePosixPath, PureWindowsPath
@@ -10,6 +11,11 @@ from typing import BinaryIO, Iterable, Iterator, overload
 from . import fls_wrapper, icat_wrapper
 from .mmls_types import Partition
 from .types import FsEntryType, MetaAddress
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 LOGGER = logging.getLogger(__name__)
 
@@ -35,7 +41,7 @@ class FsEntry:
         partition: Partition,
         parent: FsEntry | None = None,
         case_insensitive: bool | None = None,
-    ) -> FsEntry:
+    ) -> Self:
         m = FsEntry.RE_ENTRY.match(s)
         if m is None:
             raise ValueError(f"Invalid fs entry string: {s}")
@@ -270,7 +276,7 @@ class FsEntryList:
         return str(base_path), nb_files, nb_dirs
 
     @classmethod
-    def empty(cls) -> FsEntryList:
+    def empty(cls) -> Self:
         return cls([])
 
     def __iter__(self) -> Iterator[FsEntry]:
