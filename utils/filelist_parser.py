@@ -4,7 +4,6 @@ import logging
 import subprocess
 import sys
 from dataclasses import dataclass, field
-from functools import cache
 from graphlib import TopologicalSorter
 from pathlib import Path
 from typing import Any, Iterable, Iterator, TypedDict, overload
@@ -69,7 +68,7 @@ class FileList:
 
     @dataclass(frozen=True)
     class Tool:
-        file: FileList.File = field(repr=False, compare=False)
+        file: FileList.File = field(repr=False)
         cmd: str | None = None
         name: str | None = None
         extra: dict[str, Any] = field(default_factory=dict)
@@ -89,7 +88,6 @@ class FileList:
             requires = frozenset(data.get("requires", []))
             return cls(name=name, file=file, cmd=cmd, extra=extra, requires=requires)
 
-        @cache
         def get_command(
             self,
             file_path: str | Path | None = None,
@@ -152,13 +150,22 @@ class FileList:
                 LOGGER.warning(f"Command failed (returned {ret})")
             return ret
 
+        def __str__(self) -> str:
+            s = "["
+            if self.name:
+                s += f"name: '{self.name}', "
+            if self.cmd:
+                s += f"cmd: '{self.cmd}', "
+            s += f"file: '{self.file.path}']"
+            return s
+
         def __hash__(self) -> int:
-            return hash((self.name, self.cmd, tuple(self.extra.items()), self.requires))
+            return hash((self.name, self.cmd, tuple(self.extra.items()), self.requires, self.file))
 
     @dataclass(frozen=True)
     class File:
         path: str
-        file_list: FileList = field(repr=False, compare=False)
+        file_list: FileList = field(repr=False)
         tools: list[FileList.Tool] = field(default_factory=list)
 
         @classmethod
@@ -195,7 +202,7 @@ class FileList:
             return path.replace("\\", "/").lstrip("C:").lstrip("c:").strip("/")
 
         def __hash__(self) -> int:
-            return hash((self.path, tuple(self.tools)))
+            return hash((self.path, tuple(self.tools), self.file_list.config))
 
     def __post_init__(self) -> None:
         self.sort_files()
@@ -228,6 +235,11 @@ class FileList:
         for file in self.files:
             sorter.add(file.path)
             for tool in file.tools:
+                for req in tool.requires:
+                    if req not in self:
+                        raise ValueError(
+                            f"Tool {tool} requires unknown file '{req}'"
+                        )
                 sorter.add(file.path, *tool.requires)
         sorted_files = list(sorter.static_order())
         indices = {path: i for i, path in enumerate(sorted_files)}
