@@ -31,6 +31,8 @@ class Config:
         cmd: str | Config.YamlConfigToolCmd
         args: NotRequired[str]
         args_extra: NotRequired[dict[str, str]]
+        enabled: NotRequired[bool]
+        disabled: NotRequired[bool]
 
     class YamlConfig(TypedDict):
         tools: NotRequired[list[Config.YamlConfigTool]]

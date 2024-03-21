@@ -52,10 +52,16 @@ class FileList:
     files: list[File]
     config: Config
 
+    class YamlFilesOutput(TypedDict):
+        path: str
+        append: NotRequired[bool]
+        stderr: NotRequired[bool]
+
     class YamlFilesTool(TypedDict):
         name: NotRequired[str]
         cmd: NotRequired[str]
         extra: NotRequired[dict[str, Any]]
+        output: NotRequired[str | FileList.YamlFilesOutput]
         requires: NotRequired[list[str]]
 
     class YamlFilesFile(TypedDict):
@@ -72,7 +78,26 @@ class FileList:
         cmd: str | None = None
         name: str | None = None
         extra: dict[str, Any] = field(default_factory=dict)
+        output: Output | None = None
         requires: frozenset[str] = field(default_factory=frozenset)
+
+        @dataclass(frozen=True)
+        class Output:
+            path: str
+            append: bool = False
+            stderr: bool = False
+
+            @classmethod
+            def from_dict(cls, data: FileList.YamlFilesOutput | str | Any) -> Self:
+                if isinstance(data, str):
+                    return cls(path=data)
+                if not (isinstance(data, dict) and "path" in data):
+                    raise KeyError("Missing 'path' key")
+                return cls(
+                    path=data["path"],
+                    append=bool(data.get("append", False)),
+                    stderr=bool(data.get("stderr", False)),
+                )
 
         @classmethod
         def from_dict(cls, data: FileList.YamlFilesTool | Any, file: FileList.File) -> Self:
@@ -85,14 +110,20 @@ class FileList:
             if (name is None) == (cmd is None):
                 raise ValueError("Must specify either 'name' or 'cmd' key, but not both")
             extra = data.get("extra", {})
+            output_val = data.get("output")
+            if output_val is None:
+                output = None
+            else:
+                output = cls.Output.from_dict(output_val)
             requires = frozenset(data.get("requires", []))
-            return cls(name=name, file=file, cmd=cmd, extra=extra, requires=requires)
+            return cls(name=name, file=file, cmd=cmd, extra=extra, output=output, requires=requires)
 
         def get_command(
             self,
             file_path: str | Path | None = None,
             out_dir: str | Path | None = ".",
             extra_vars: dict[str, str] = {},
+            extra_args: str | None = None,
         ) -> str | None:
             config = self.file.file_list.config
             if out_dir is None:
@@ -124,6 +155,8 @@ class FileList:
                 cmd = self.cmd
             if cmd is None:
                 raise ValueError("Tool must have either 'cmd' or 'name' key")
+            if extra_args is not None:
+                cmd += f" {extra_args}"
             return sub_vars_all(cmd, var_dict)
 
         def run(
@@ -135,13 +168,35 @@ class FileList:
             silent: bool = False,
             check: bool = True,
         ) -> int | None:
-            cmd = self.get_command(file_path, out_dir, extra_vars)
+            cmd = self.get_command(file_path, out_dir, extra_vars, extra_args)
             if cmd is None:
                 return None
-            if extra_args is not None:
-                cmd += f" {extra_args}"
             LOGGER.info(f"Running command: {cmd}")
-            if silent:
+            if self.output is not None:
+                var_dict = self.file.file_list.config.dir_vars() | extra_vars
+                var_dict |= {"FILE": str(file_path), "OUTDIR": str(out_dir)}
+                out_path = Path(sub_vars_all(self.output.path, var_dict))
+                LOGGER.debug(
+                    f"Writing output to file: '{out_path}' (%s, %s STDERR)",
+                    "appending" if self.output.append else "overwriting",
+                    "with" if self.output.stderr else "no",
+                )
+                out_parent = out_path.parent
+                if not out_parent.exists():
+                    LOGGER.debug(f"Creating directory: {out_parent}")
+                    out_parent.mkdir(parents=True)
+                with open(out_path, "a" if self.output.append else "w") as out_file:
+                    proc_res = subprocess.run(
+                        cmd,
+                        shell=True,
+                        check=check,
+                        stdout=out_file,
+                        stderr=subprocess.STDOUT if self.output.stderr else None,
+                    )
+                    if self.output.append:
+                        out_file.write("\n")
+            elif silent:
+                LOGGER.debug("Silent mode: command STDOUT will be suppressed")
                 proc_res = subprocess.run(cmd, shell=True, check=check, stdout=subprocess.DEVNULL)
             else:
                 proc_res = subprocess.run(cmd, shell=True, check=check)
@@ -162,7 +217,16 @@ class FileList:
             return s
 
         def __hash__(self) -> int:
-            return hash((self.name, self.cmd, tuple(self.extra.items()), self.requires, self.file))
+            return hash(
+                (
+                    self.name,
+                    self.cmd,
+                    tuple(self.extra.items()),
+                    self.requires,
+                    self.output,
+                    self.file,
+                )
+            )
 
     @dataclass(frozen=True)
     class File:

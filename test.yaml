@@ -1,20 +1,36 @@
 files:
   - path: Users/*/Desktop/*.exe
     tool:
-      cmd: "echo 'Test file: $FILE'; echo 'Test STDERR' >&2"
+      cmd: "echo 'Test file: $FILE'; echo 'Test STDERR' >&2; ls -l '$OUTDIR/$MFT'"
       requires:
         - $MFT
   - $MFT
   - path: Users/*/Desktop
     tools:
-      - cmd: "echo 'Test dir: $FILE'"
+      - "echo 'Test dir: $FILE'"
       - cmd: tree -a $FILE
+        output: $OUTDIR/out/tree1.txt
       - name: test_enabled_yes
       - name: test_enabled_no
       - name: test_disabled_yes
       - name: test_disabled_no
   - path: Users/*/Documents
     tools:
-      - cmd: "echo 'Test dir: $FILE'"
+      - "echo 'Test dir: $FILE'"
       - cmd: tree -a $FILE
+        output: $OUTDIR/out/tree2.txt
+      - cmd: tree -a $FILE
+        output:
+          path: $OUTDIR/out/tree2.txt
+          append: yes
+      - cmd: echo 'STDOUT - $FILE'; echo 'STDERR - $FILE' >&2
+        output:
+          path: $OUTDIR/out/stdout.txt
+          append: no
+      - cmd: echo 'STDOUT - $FILE'; echo 'STDERR - $FILE' >&2
+        output:
+          path: $OUTDIR/out/stderr.txt
+          append: no
+          stderr: yes
+
       # - cmd: echo 'Test crash' >&2; exit 42

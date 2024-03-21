@@ -8,6 +8,7 @@ files:
       - name: regripper
         extra:
           plugin: usbstor
+        output: $OUTDIR/usbstor.txt
   - path: Windows/System32/sru/SRUDB.dat
     tool:
       name: srum_dump
