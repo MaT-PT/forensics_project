@@ -20,4 +20,4 @@ tools:
 
 directories:
   regripper: /usr/bin
-  srum_dump: /opt/srum_dump
+  srum_dump: /opt/srum-dump

@@ -1,6 +1,15 @@
 files:
   - path: Users/*/Desktop/*.exe
+    tool:
+      cmd: "echo 'Test file: $FILE'; echo 'Test STDERR' >&2"
+      requires:
+        - $MFT
+  - path: Users/*/Desktop
     tools:
-      - cmd: "echo 'Test: $FILE'"
-        requires:
-          - $MFT
+      - cmd: "echo 'Test dir: $FILE'"
+      - cmd: tree -a $FILE
+  - path: Users/*/Documents
+    tools:
+      - cmd: "echo 'Test dir: $FILE'"
+      - cmd: tree -a $FILE
+      # - cmd: echo 'Test crash' >&2; exit 42

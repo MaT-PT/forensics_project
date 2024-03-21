@@ -126,7 +126,7 @@ class FsEntry:
 
     def save_dir(
         self, base_path: str | Path | None = None, parents: bool = False
-    ) -> tuple[str, int, int]:
+    ) -> tuple[Path, int, int]:
         if not self.is_directory:
             raise ValueError(f"'{self.path}' is not a directory")
         path = self.path if parents else self.name_path
@@ -151,7 +151,7 @@ class FsEntry:
             f"Saved {nb_files} file{'s' if nb_files > 1 else ''} and {nb_dirs} "
             f"director{'ies' if nb_dirs > 1 else 'y'} to '{base_path}'"
         )
-        return str(base_path), nb_files, nb_dirs
+        return base_path, nb_files, nb_dirs
 
     @overload
     def save_file(
@@ -253,7 +253,7 @@ class FsEntryList:
             entries = ent_tmp.find_entries(part)
         return entries
 
-    def save_all(self, base_path: str | Path | None = None) -> tuple[str, int, int]:
+    def save_all(self, base_path: str | Path | None = None) -> tuple[Path, int, int]:
         if base_path is None:
             base_path = Path(".")
         else:
@@ -273,7 +273,7 @@ class FsEntryList:
             f"Saved {nb_files} file{'s' if nb_files > 1 else ''} and {nb_dirs} "
             f"director{'ies' if nb_dirs > 1 else 'y'} to '{base_path}'"
         )
-        return str(base_path), nb_files, nb_dirs
+        return base_path, nb_files, nb_dirs
 
     @classmethod
     def empty(cls) -> Self:

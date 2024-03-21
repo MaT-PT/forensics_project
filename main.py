@@ -101,10 +101,15 @@ def main() -> None:
         for entry in entries:
             if not args.silent:
                 print("Extracting:", entry)
+            path: Path | None
             if entry.is_directory:
-                entry.save_dir(base_path=args.out_dir, parents=True)
+                path, _, _ = entry.save_dir(base_path=args.out_dir, parents=True)
             else:
-                entry.save_file(base_path=args.out_dir, parents=True)
+                path, _ = entry.save_file(base_path=args.out_dir, parents=True)
+            for tool in file.tools:
+                tool.run(path, args.out_dir, silent=args.silent, check=True)
+                if not args.silent:
+                    print()  # Add an empty line after each tool
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from functools import cache
@@ -92,17 +93,19 @@ class FileList:
         def get_command(
             self,
             file_path: str | Path | None = None,
-            out_dir: str | Path = ".",
-            extra_vars: dict[str, str] = {},
+            out_dir: str | Path | None = ".",
+            extra_vars: tuple[tuple[str, str], ...] = (),
         ) -> str:
             config = self.file.file_list.config
-            if isinstance(out_dir, str):
+            if out_dir is None:
+                out_dir = Path(".")
+            elif isinstance(out_dir, str):
                 out_dir = Path(out_dir)
             if file_path is None:
                 file_path = out_dir / self.file.path
             elif isinstance(file_path, str):
                 file_path = Path(file_path)
-            var_dict = config.dir_vars() | extra_vars
+            var_dict = config.dir_vars() | dict(extra_vars)
             var_dict |= {"FILE": str(file_path), "OUTDIR": str(out_dir)}
             cmd: str | None
             if self.name is not None:
@@ -121,6 +124,33 @@ class FileList:
             if cmd is None:
                 raise ValueError("Tool must have either 'cmd' or 'name' key")
             return sub_vars_all(cmd, var_dict)
+
+        def run(
+            self,
+            file_path: str | Path | None = None,
+            out_dir: str | Path | None = ".",
+            extra_vars: dict[str, str] | tuple[tuple[str, str], ...] = (),
+            extra_args: str | None = None,
+            silent: bool = False,
+            check: bool = True,
+        ) -> int:
+            if isinstance(extra_vars, dict):
+                extra_vars = tuple(extra_vars.items())
+            extra_vars = tuple(sorted(extra_vars))  # Sort to ensure consistent hash for caching
+            cmd = self.get_command(file_path, out_dir, extra_vars)
+            if extra_args is not None:
+                cmd += f" {extra_args}"
+            LOGGER.info(f"Running command: {cmd}")
+            if silent:
+                proc_res = subprocess.run(cmd, shell=True, check=check, stdout=subprocess.DEVNULL)
+            else:
+                proc_res = subprocess.run(cmd, shell=True, check=check)
+            ret = proc_res.returncode
+            if ret == 0:
+                LOGGER.info(f"Command succeeded (returned {ret})")
+            else:
+                LOGGER.warning(f"Command failed (returned {ret})")
+            return ret
 
         def __hash__(self) -> int:
             return hash((self.name, self.cmd, tuple(self.extra.items()), self.requires))
