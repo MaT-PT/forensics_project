@@ -4,10 +4,15 @@ files:
       cmd: "echo 'Test file: $FILE'; echo 'Test STDERR' >&2"
       requires:
         - $MFT
+  - $MFT
   - path: Users/*/Desktop
     tools:
       - cmd: "echo 'Test dir: $FILE'"
       - cmd: tree -a $FILE
+      - name: test_enabled_yes
+      - name: test_enabled_no
+      - name: test_disabled_yes
+      - name: test_disabled_no
   - path: Users/*/Documents
     tools:
       - cmd: "echo 'Test dir: $FILE'"

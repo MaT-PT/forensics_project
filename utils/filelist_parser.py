@@ -92,8 +92,8 @@ class FileList:
             self,
             file_path: str | Path | None = None,
             out_dir: str | Path | None = ".",
-            extra_vars: tuple[tuple[str, str], ...] = (),
-        ) -> str:
+            extra_vars: dict[str, str] = {},
+        ) -> str | None:
             config = self.file.file_list.config
             if out_dir is None:
                 out_dir = Path(".")
@@ -103,11 +103,14 @@ class FileList:
                 file_path = out_dir / self.file.path
             elif isinstance(file_path, str):
                 file_path = Path(file_path)
-            var_dict = config.dir_vars() | dict(extra_vars)
+            var_dict = config.dir_vars() | extra_vars
             var_dict |= {"FILE": str(file_path), "OUTDIR": str(out_dir)}
             cmd: str | None
             if self.name is not None:
                 tool = config.get_tool(self.name)
+                if not tool.enabled:
+                    LOGGER.info(f"Tool '{self.name}' is disabled in config")
+                    return None
                 cmd = tool.cmd
                 if tool.args:
                     cmd += f" {tool.args}"
@@ -127,15 +130,14 @@ class FileList:
             self,
             file_path: str | Path | None = None,
             out_dir: str | Path | None = ".",
-            extra_vars: dict[str, str] | tuple[tuple[str, str], ...] = (),
+            extra_vars: dict[str, str] = {},
             extra_args: str | None = None,
             silent: bool = False,
             check: bool = True,
-        ) -> int:
-            if isinstance(extra_vars, dict):
-                extra_vars = tuple(extra_vars.items())
-            extra_vars = tuple(sorted(extra_vars))  # Sort to ensure consistent hash for caching
+        ) -> int | None:
             cmd = self.get_command(file_path, out_dir, extra_vars)
+            if cmd is None:
+                return None
             if extra_args is not None:
                 cmd += f" {extra_args}"
             LOGGER.info(f"Running command: {cmd}")
@@ -237,9 +239,7 @@ class FileList:
             for tool in file.tools:
                 for req in tool.requires:
                     if req not in self:
-                        raise ValueError(
-                            f"Tool {tool} requires unknown file '{req}'"
-                        )
+                        raise ValueError(f"Tool {tool} requires unknown file '{req}'")
                 sorter.add(file.path, *tool.requires)
         sorted_files = list(sorter.static_order())
         indices = {path: i for i, path in enumerate(sorted_files)}

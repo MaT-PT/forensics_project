@@ -109,9 +109,9 @@ def main() -> None:
             else:
                 path, _ = entry.save_file(base_path=args.out_dir, parents=True)
             for tool in file.tools:
-                tool.run(path, args.out_dir, silent=args.silent, check=True)
-                if not args.silent:
-                    print()  # Add an empty line after each tool
+                ret = tool.run(path, args.out_dir, silent=args.silent, check=True)
+                if not (ret is None or args.silent):
+                    print()  # Add an empty line after each tool that ran
 
 
 if __name__ == "__main__":

@@ -80,6 +80,7 @@ class Config:
         command: Config.ToolCmd
         args: str | None = None
         args_extra: dict[str, str] = field(default_factory=dict)
+        enabled: bool = True
 
         @classmethod
         def from_dict(cls, data: Config.YamlConfigTool | Any) -> Self:
@@ -89,7 +90,19 @@ class Config:
             command = Config.ToolCmd.from_dict(data["cmd"])
             args = data.get("args")
             args_extra = data.get("args_extra", {})
-            return cls(name=name, command=command, args=args, args_extra=args_extra)
+            enabled = data.get("enabled")
+            disabled = data.get("disabled")
+            if enabled is not None:
+                if disabled is not None and bool(enabled) == bool(disabled):
+                    raise ValueError("Incoherent values for 'enabled' and 'disabled'")
+                enabled = bool(enabled)
+            elif disabled is not None:
+                enabled = not bool(disabled)
+            else:
+                enabled = True
+            return cls(
+                name=name, command=command, args=args, args_extra=args_extra, enabled=enabled
+            )
 
         @property
         def cmd(self) -> str:

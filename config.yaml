@@ -17,6 +17,18 @@ tools:
       reg_hive: --REG_HIVE $REG_HIVE
       xlsx_outfile: --XLSX_OUTFILE $XLSX_OUTFILE
       xlsx_template: --XLSX_TEMPLATE $XLSX_TEMPLATE
+  - name: test_enabled_yes
+    cmd: echo 'Test enabled YES - $FILE'
+    enabled: yes
+  - name: test_enabled_no
+    cmd: echo 'Test enabled NO - $FILE'
+    enabled: no
+  - name: test_disabled_yes
+    cmd: echo 'Test disabled YES - $FILE'
+    disabled: yes
+  - name: test_disabled_no
+    cmd: echo 'Test disabled NO - $FILE'
+    disabled: no
 
 directories:
   regripper: /usr/bin
