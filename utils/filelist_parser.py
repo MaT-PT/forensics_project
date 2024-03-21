@@ -208,12 +208,11 @@ class FileList:
             return ret
 
         def __str__(self) -> str:
-            s = "["
             if self.name:
-                s += f"name: '{self.name}', "
-            if self.cmd:
-                s += f"cmd: '{self.cmd}', "
-            s += f"file: '{self.file.path}']"
+                s = f"Tool: '{self.name}'"
+            else:
+                s = f"Command: '{self.cmd}'"
+            s += f" [file: '{self.file.path}']"
             return s
 
         def __hash__(self) -> int:
@@ -303,7 +302,7 @@ class FileList:
             for tool in file.tools:
                 for req in tool.requires:
                     if req not in self:
-                        raise ValueError(f"Tool {tool} requires unknown file '{req}'")
+                        raise ValueError(f"{tool} requires unknown file '{req}'")
                 sorter.add(file.path, *tool.requires)
         sorted_files = list(sorter.static_order())
         indices = {path: i for i, path in enumerate(sorted_files)}

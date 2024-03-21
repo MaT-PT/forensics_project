@@ -225,14 +225,14 @@ class FsEntryList:
         res = next((f for f in self.entries if f.name_eq(name)), None)
         if res is None:
             raise IndexError(f"No entry found with name '{name}'")
-        LOGGER.debug(f"Found entry '{res}'")
+        LOGGER.debug(f"Found entry: '{res}'")
         return res
 
     @cache
     def find_entries(self, name: str) -> FsEntryList:
         entries = [ent for ent in self.entries if ent.name_matches(name)]
         if entries:
-            LOGGER.debug(f"Found entries: {', '.join(entry.name for entry in entries)}")
+            LOGGER.debug(f"Found entries: {', '.join(str(entry.path) for entry in entries)}")
         else:
             LOGGER.debug(f"No entries found with name matching '{name}'")
         return FsEntryList(entries)
