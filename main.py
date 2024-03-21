@@ -32,6 +32,14 @@ def main() -> None:
         print("Error:", e)
         exit(1)
 
+    config = Config.from_yaml_file(CONFIG_FILE)
+    file_list = FileList.empty(config)
+    if args.file is not None:
+        file_list.extend(args.file)
+    if args.file_list is not None:
+        for yaml_file in args.file_list:
+            file_list += FileList.from_yaml_file(yaml_file, config)
+
     res_mmls = mmls(
         args.image,
         vstype=args.vstype,
@@ -80,14 +88,6 @@ def main() -> None:
     if args.save_all:
         root_entries.save_all(base_path=args.out_dir)
         return
-
-    config = Config.from_yaml_file(CONFIG_FILE)
-    file_list = FileList.empty(config)
-    if args.file is not None:
-        file_list.extend(args.file)
-    if args.file_list is not None:
-        for yaml_file in args.file_list:
-            file_list += FileList.from_yaml_file(yaml_file, config)
 
     if not args.silent:
         if not file_list:
