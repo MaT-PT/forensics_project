@@ -10,7 +10,7 @@ from utils.argparse_utils import parse_args
 from utils.config_parser import Config
 from utils.filelist_parser import FileList
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 
 SCRIPT_DIR = Path(__file__ if "__file__" in globals() else sys.argv[0]).parent
 CONFIG_FILE = SCRIPT_DIR / "config.yaml"
@@ -19,10 +19,12 @@ CONFIG_FILE = SCRIPT_DIR / "config.yaml"
 def main() -> None:
     args = parse_args()
 
-    if args.verbose:
+    if args.verbose > 1:
         logging.getLogger().setLevel(logging.DEBUG)
+    elif args.verbose == 1:
+        logging.getLogger().setLevel(logging.INFO)
     elif args.silent:
-        logging.getLogger().setLevel(logging.CRITICAL)
+        logging.getLogger().setLevel(logging.ERROR)
 
     try:
         check_required_tools(args.tsk_path)
