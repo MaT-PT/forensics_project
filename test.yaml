@@ -1,0 +1,6 @@
+files:
+  - path: Users/*/Desktop/*.exe
+    tools:
+      - cmd: "echo 'Test: $FILE'"
+        requires:
+          - $MFT

@@ -1,10 +1,4 @@
 files:
-  - path: Users/*/Desktop/*.exe
-    tools:
-      - cmd: "echo 'Test: $FILE'"
-        requires:
-          - $MFT
-          - Windows/System32/config/SAM
   - $MFT
   - Windows/System32/config/SAM
   - Windows/System32/config/SECURITY
