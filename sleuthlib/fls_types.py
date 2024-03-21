@@ -159,16 +159,16 @@ class FsEntry:
         file: str | Path | None = None,
         base_path: str | Path | None = None,
         parents: bool = False,
-    ) -> tuple[str, int]: ...
+    ) -> tuple[Path | None, int]: ...
     @overload
-    def save_file(self, file: BinaryIO) -> tuple[str, int]: ...
+    def save_file(self, file: BinaryIO) -> tuple[Path | None, int]: ...
 
     def save_file(
         self,
         file: str | Path | BinaryIO | None = None,
         base_path: str | Path | None = None,
         parents: bool = False,
-    ) -> tuple[str, int]:
+    ) -> tuple[Path | None, int]:
         must_close = False
         if file is None:
             file = Path(self.name)
@@ -183,7 +183,7 @@ class FsEntry:
                 base_path /= self.parent.path
             base_path.mkdir(exist_ok=True, parents=True)
             file = base_path / file
-            filepath = str(file)
+            filepath: Path | None = file
             file = open(file, "wb")
             must_close = True
         elif base_path is not None:
@@ -191,7 +191,7 @@ class FsEntry:
         elif parents:
             raise ValueError("Cannot specify parents with a file-like object")
         else:
-            filepath = file.name if isinstance(file.name, str) else "unknown_file"
+            filepath = Path(file.name) if isinstance(file.name, str) else None
 
         LOGGER.info(f"Saving file '{self.path}' to '{filepath}'")
         try:
@@ -282,8 +282,10 @@ class FsEntryList:
     def __iter__(self) -> Iterator[FsEntry]:
         return iter(self.entries)
 
-    def __contains__(self, item: str) -> bool:
-        return any(f.name == item for f in self.entries)
+    def __contains__(self, item: str | FsEntry) -> bool:
+        if isinstance(item, str):
+            return any(f.name == item for f in self.entries)
+        return item in self.entries
 
     @overload
     def __getitem__(self, item: int) -> FsEntry: ...

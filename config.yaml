@@ -1,0 +1,23 @@
+tools:
+  - name: regripper
+    cmd:
+      windows: $DIR_REGRIPPER/rip.exe
+      linux: $DIR_REGRIPPER/regripper
+    args: -r $FILE
+    args_extra:
+      plugin: -p $PLUGIN
+      profile: -f $PROFILE
+      auto: -a
+  - name: srum_dump
+    cmd:
+      windows: $DIR_SRUM_DUMP/srum_dump2.exe
+      linux: python3 $DIR_SRUM_DUMP/srum_dump2.py
+    args: -i $FILE
+    args_extra:
+      reg_hive: --REG_HIVE $REG_HIVE
+      xlsx_outfile: --XLSX_OUTFILE $XLSX_OUTFILE
+      xlsx_template: --XLSX_TEMPLATE $XLSX_TEMPLATE
+
+directories:
+  regripper: /usr/bin
+  srum_dump: /opt/srum_dump

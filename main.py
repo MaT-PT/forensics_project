@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 
 import logging
+import sys
+from pathlib import Path
 
 from sleuthlib import mmls
 from sleuthlib.utils import check_required_tools
 from utils.argparse_utils import parse_args
-from utils.parse_yaml import parse_yaml
+from utils.config_parser import Config
+from utils.filelist_parser import FileList
 
 logging.basicConfig(level=logging.INFO)
+
+SCRIPT_DIR = Path(__file__ if "__file__" in globals() else sys.argv[0]).parent
+CONFIG_FILE = SCRIPT_DIR / "config.yaml"
 
 
 def main() -> None:
@@ -73,23 +79,25 @@ def main() -> None:
         root_entries.save_all(base_path=args.out_dir)
         return
 
-    files = args.file or []
-    for file_list in args.file_list or []:
-        files.extend(parse_yaml(file_list))
-    files = [f.replace("\\", "/").strip("/") for f in files]  # Normalize paths
-    files = list(dict.fromkeys(files).keys())  # Remove duplicates
+    config = Config.from_yaml_file(CONFIG_FILE)
+    file_list = FileList.empty(config)
+    if args.file is not None:
+        file_list.extend(args.file)
+    if args.file_list is not None:
+        for yaml_file in args.file_list:
+            file_list += FileList.from_yaml_file(yaml_file, config)
 
     if not args.silent:
-        if not files:
+        if not file_list:
             print("No files to extract")
             return
         print("Files to extract:")
-        for file in files:
-            print(f" - {file}")
+        for file in file_list:
+            print(f" - {file.path}")
         print()
 
-    for file in files:
-        entries = root_entries.find_path(file)
+    for file in file_list:
+        entries = root_entries.find_path(file.path)
         for entry in entries:
             if not args.silent:
                 print("Extracting:", entry)
