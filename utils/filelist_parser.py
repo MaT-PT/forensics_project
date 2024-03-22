@@ -63,6 +63,7 @@ class FileList:
         extra: NotRequired[dict[str, Any]]
         output: NotRequired[str | FileList.YamlFilesOutput]
         requires: NotRequired[list[str]]
+        allow_fail: NotRequired[bool]
 
     class YamlFilesFile(TypedDict):
         path: str
@@ -80,6 +81,7 @@ class FileList:
         extra: dict[str, Any] = field(default_factory=dict)
         output: Output | None = None
         requires: frozenset[str] = field(default_factory=frozenset)
+        allow_fail: bool | None = None
 
         @dataclass(frozen=True)
         class Output:
@@ -109,14 +111,16 @@ class FileList:
             cmd = data.get("cmd")
             if (name is None) == (cmd is None):
                 raise ValueError("Must specify either 'name' or 'cmd' key, but not both")
-            extra = data.get("extra", {})
-            output_val = data.get("output")
-            if output_val is None:
-                output = None
-            else:
-                output = cls.Output.from_dict(output_val)
-            requires = frozenset(data.get("requires", []))
-            return cls(name=name, file=file, cmd=cmd, extra=extra, output=output, requires=requires)
+            output = data.get("output")
+            return cls(
+                name=name,
+                file=file,
+                cmd=cmd,
+                extra=data.get("extra", {}),
+                output=None if output is None else cls.Output.from_dict(output),
+                requires=frozenset(data.get("requires", [])),
+                allow_fail=data.get("allow_fail"),
+            )
 
         def get_command(
             self,
@@ -166,14 +170,19 @@ class FileList:
             extra_vars: dict[str, str] = {},
             extra_args: str | None = None,
             silent: bool = False,
-            check: bool = True,
         ) -> int | None:
             cmd = self.get_command(file_path, out_dir, extra_vars, extra_args)
             if cmd is None:
                 return None
+            config = self.file.file_list.config
+            if self.name is None or self.allow_fail is not None:
+                check = not self.allow_fail
+            else:
+                check = not config.get_tool(self.name).allow_fail
+
             LOGGER.info(f"Running command: {cmd}")
             if self.output is not None:
-                var_dict = self.file.file_list.config.dir_vars() | extra_vars
+                var_dict = config.dir_vars() | extra_vars
                 var_dict |= {"FILE": str(file_path), "OUTDIR": str(out_dir)}
                 out_path = Path(sub_vars_all(self.output.path, var_dict))
                 LOGGER.debug(
@@ -224,6 +233,7 @@ class FileList:
                     self.requires,
                     self.output,
                     self.file,
+                    self.allow_fail,
                 )
             )
 

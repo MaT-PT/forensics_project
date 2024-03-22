@@ -4,7 +4,7 @@ import logging
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, TypedDict, get_type_hints
 
 import yaml
 
@@ -31,6 +31,7 @@ class Config:
         cmd: str | Config.YamlConfigToolCmd
         args: NotRequired[str]
         args_extra: NotRequired[dict[str, str]]
+        allow_fail: NotRequired[bool]
         enabled: NotRequired[bool]
         disabled: NotRequired[bool]
 
@@ -48,9 +49,7 @@ class Config:
         def from_dict(cls, data: Config.YamlConfigToolCmd | str | Any) -> Self:
             if isinstance(data, str):
                 return cls(windows=data, linux=data, mac=data)
-            if not (
-                isinstance(data, dict) and ("windows" in data or "linux" in data or "mac" in data)
-            ):
+            if not (isinstance(data, dict) and set() < set(data) <= set(get_type_hints(cls))):
                 raise TypeError(
                     "Invalid cmd configuration (must be a string, "
                     "or a dict with keys 'windows', 'linux', and/or 'mac')"
@@ -73,15 +72,13 @@ class Config:
             assert cmd is not None, f"Could not find cmd for current platform ({sys.platform})"
             return cmd
 
-        def __hash__(self) -> int:
-            return hash((self.windows, self.linux, self.mac))
-
     @dataclass(frozen=True)
     class Tool:
         name: str
         command: Config.ToolCmd
         args: str | None = None
         args_extra: dict[str, str] = field(default_factory=dict)
+        allow_fail: bool | None = None
         enabled: bool = True
 
         @classmethod
@@ -89,21 +86,25 @@ class Config:
             if not (isinstance(data, dict) and "name" in data and "cmd" in data):
                 raise KeyError("Missing 'name' or 'cmd' key")
             name = data["name"]
-            command = Config.ToolCmd.from_dict(data["cmd"])
-            args = data.get("args")
-            args_extra = data.get("args_extra", {})
             enabled = data.get("enabled")
             disabled = data.get("disabled")
             if enabled is not None:
                 if disabled is not None and bool(enabled) == bool(disabled):
-                    raise ValueError("Incoherent values for 'enabled' and 'disabled'")
+                    raise ValueError(
+                        f"Tool '{name}': Incoherent values for 'enabled' and 'disabled'"
+                    )
                 enabled = bool(enabled)
             elif disabled is not None:
-                enabled = not bool(disabled)
+                enabled = not disabled
             else:
                 enabled = True
             return cls(
-                name=name, command=command, args=args, args_extra=args_extra, enabled=enabled
+                name=name,
+                command=Config.ToolCmd.from_dict(data["cmd"]),
+                args=data.get("args"),
+                args_extra=data.get("args_extra", {}),
+                allow_fail=data.get("allow_fail"),
+                enabled=enabled,
             )
 
         @property
@@ -111,15 +112,22 @@ class Config:
             return self.command.cmd
 
         def __hash__(self) -> int:
-            return hash((self.name, self.command, self.args, tuple(self.args_extra.items())))
+            return hash(
+                (
+                    self.name,
+                    self.command,
+                    self.args,
+                    frozenset(self.args_extra.items()),
+                    self.allow_fail,
+                    self.enabled,
+                )
+            )
 
     @classmethod
     def from_dict(cls, data: Config.YamlConfig | Any) -> Self:
-        tools = data.get("tools", [])
-        directories = data.get("directories", {})
         return cls(
-            tools=[Config.Tool.from_dict(tool) for tool in tools],
-            directories=directories,
+            tools=[Config.Tool.from_dict(tool) for tool in data.get("tools", [])],
+            directories=data.get("directories", {}),
         )
 
     @classmethod
@@ -140,4 +148,4 @@ class Config:
         return {f"DIR_{key.upper()}": value for key, value in self.directories.items()}
 
     def __hash__(self) -> int:
-        return hash((tuple(self.tools), tuple(self.directories.items())))
+        return hash((frozenset(self.tools), frozenset(self.directories.items())))
