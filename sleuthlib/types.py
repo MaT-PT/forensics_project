@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass
 from enum import StrEnum
 from functools import cache, cached_property
-from typing import Literal, NewType, TypeAlias
+from typing import Literal, NewType
+
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
 
 PART_TABLE_TYPES = {
     "dos": "DOS Partition Table",

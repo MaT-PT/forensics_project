@@ -23,7 +23,7 @@ class Arguments:
     out_dir: str | None
     case_sensitive: bool
     silent: bool
-    verbose: bool
+    verbose: int
 
 
 def int_min(min_val: int = 0) -> Callable[[str], int]:
@@ -173,8 +173,9 @@ def parse_args() -> Arguments:
     xgrp_verbosity.add_argument(
         "--verbose",
         "-v",
-        action="store_true",
-        help="Verbose output",
+        action="count",
+        default=0,
+        help="Verbose output (use multiple times for more verbosity)",
     )
 
     args = parser.parse_args()

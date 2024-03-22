@@ -1,0 +1,29 @@
+files:
+  - $MFT
+  - Windows/System32/config/SAM
+  - Windows/System32/config/SECURITY
+  - Windows/System32/config/SOFTWARE
+  - path: Windows/System32/config/SYSTEM
+    tools:
+      - name: regripper
+        extra:
+          plugin: usbstor
+        output: $OUTDIR/usbstor.txt
+  - path: Windows/System32/sru/SRUDB.dat
+    tool:
+      name: srum_dump
+      extra:
+        reg_hive: $OUTDIR/Windows/System32/config/SOFTWARE
+        xlsx_outfile: $OUTDIR/srum_dump.xlsx
+        xlsx_template: $DIR_SRUM_DUMP/SRUM_TEMPLATE3.xlsx
+      requires:
+        - Windows/System32/config/SOFTWARE
+  - Users/*/NTUSER.DAT
+  - Users/*/AppData/Local/Microsoft/Windows/UsrClass.dat
+  - Windows/System32/winevt/Logs/*
+  - Windows/System32/LogFiles/*
+  - Windows/Tasks/*
+  - Windows/System32/drivers/etc/hosts
+  - Windows/security/audit/*
+  - Windows/Minidump*.dmp
+  - Windows/Memory.dmp

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import sys
 from dataclasses import dataclass
 from functools import cache, cached_property
 from pathlib import Path, PurePath, PurePosixPath, PureWindowsPath
@@ -10,6 +11,11 @@ from typing import BinaryIO, Iterable, Iterator, overload
 from . import fls_wrapper, icat_wrapper
 from .mmls_types import Partition
 from .types import FsEntryType, MetaAddress
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 LOGGER = logging.getLogger(__name__)
 
@@ -35,7 +41,7 @@ class FsEntry:
         partition: Partition,
         parent: FsEntry | None = None,
         case_insensitive: bool | None = None,
-    ) -> FsEntry:
+    ) -> Self:
         m = FsEntry.RE_ENTRY.match(s)
         if m is None:
             raise ValueError(f"Invalid fs entry string: {s}")
@@ -120,7 +126,7 @@ class FsEntry:
 
     def save_dir(
         self, base_path: str | Path | None = None, parents: bool = False
-    ) -> tuple[str, int, int]:
+    ) -> tuple[Path, int, int]:
         if not self.is_directory:
             raise ValueError(f"'{self.path}' is not a directory")
         path = self.path if parents else self.name_path
@@ -145,7 +151,7 @@ class FsEntry:
             f"Saved {nb_files} file{'s' if nb_files > 1 else ''} and {nb_dirs} "
             f"director{'ies' if nb_dirs > 1 else 'y'} to '{base_path}'"
         )
-        return str(base_path), nb_files, nb_dirs
+        return base_path, nb_files, nb_dirs
 
     @overload
     def save_file(
@@ -153,16 +159,16 @@ class FsEntry:
         file: str | Path | None = None,
         base_path: str | Path | None = None,
         parents: bool = False,
-    ) -> tuple[str, int]: ...
+    ) -> tuple[Path | None, int]: ...
     @overload
-    def save_file(self, file: BinaryIO) -> tuple[str, int]: ...
+    def save_file(self, file: BinaryIO) -> tuple[Path | None, int]: ...
 
     def save_file(
         self,
         file: str | Path | BinaryIO | None = None,
         base_path: str | Path | None = None,
         parents: bool = False,
-    ) -> tuple[str, int]:
+    ) -> tuple[Path | None, int]:
         must_close = False
         if file is None:
             file = Path(self.name)
@@ -177,7 +183,7 @@ class FsEntry:
                 base_path /= self.parent.path
             base_path.mkdir(exist_ok=True, parents=True)
             file = base_path / file
-            filepath = str(file)
+            filepath: Path | None = file
             file = open(file, "wb")
             must_close = True
         elif base_path is not None:
@@ -185,7 +191,7 @@ class FsEntry:
         elif parents:
             raise ValueError("Cannot specify parents with a file-like object")
         else:
-            filepath = file.name if isinstance(file.name, str) else "unknown_file"
+            filepath = Path(file.name) if isinstance(file.name, str) else None
 
         LOGGER.info(f"Saving file '{self.path}' to '{filepath}'")
         try:
@@ -219,14 +225,14 @@ class FsEntryList:
         res = next((f for f in self.entries if f.name_eq(name)), None)
         if res is None:
             raise IndexError(f"No entry found with name '{name}'")
-        LOGGER.debug(f"Found entry '{res}'")
+        LOGGER.debug(f"Found entry: '{res}'")
         return res
 
     @cache
     def find_entries(self, name: str) -> FsEntryList:
         entries = [ent for ent in self.entries if ent.name_matches(name)]
         if entries:
-            LOGGER.debug(f"Found entries: {', '.join(entry.name for entry in entries)}")
+            LOGGER.debug(f"Found entries: {', '.join(str(entry.path) for entry in entries)}")
         else:
             LOGGER.debug(f"No entries found with name matching '{name}'")
         return FsEntryList(entries)
@@ -247,7 +253,7 @@ class FsEntryList:
             entries = ent_tmp.find_entries(part)
         return entries
 
-    def save_all(self, base_path: str | Path | None = None) -> tuple[str, int, int]:
+    def save_all(self, base_path: str | Path | None = None) -> tuple[Path, int, int]:
         if base_path is None:
             base_path = Path(".")
         else:
@@ -267,17 +273,19 @@ class FsEntryList:
             f"Saved {nb_files} file{'s' if nb_files > 1 else ''} and {nb_dirs} "
             f"director{'ies' if nb_dirs > 1 else 'y'} to '{base_path}'"
         )
-        return str(base_path), nb_files, nb_dirs
+        return base_path, nb_files, nb_dirs
 
     @classmethod
-    def empty(cls) -> FsEntryList:
+    def empty(cls) -> Self:
         return cls([])
 
     def __iter__(self) -> Iterator[FsEntry]:
         return iter(self.entries)
 
-    def __contains__(self, item: str) -> bool:
-        return any(f.name == item for f in self.entries)
+    def __contains__(self, item: str | FsEntry) -> bool:
+        if isinstance(item, str):
+            return any(f.name == item for f in self.entries)
+        return item in self.entries
 
     @overload
     def __getitem__(self, item: int) -> FsEntry: ...
