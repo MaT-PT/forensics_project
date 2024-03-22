@@ -1,4 +1,32 @@
 tools:
+  - name: print
+    cmd: echo
+    args_extra:
+      text: $TEXT
+
+  - name: print_newline
+    cmd:
+      windows: echo.
+      linux: echo
+
+  - name: print_filename
+    cmd:
+      windows: echo.$FILE
+      linux: echo "$FILE"
+
+  - name: print_filename_separated
+    cmd:
+      windows: "echo -------------------- & echo File: $FILE & echo --------------------"
+      linux: 'echo --------------------; echo "File: $FILE"; echo --------------------'
+
+  - name: mkdir
+    cmd:
+      windows: cmd /X /C md
+      linux: mkdir -p
+    args_extra:
+      dir: "$DIR"
+    allow_fail: yes
+
   - name: regripper
     cmd:
       windows: $DIR_REGRIPPER/rip.exe
@@ -7,7 +35,9 @@ tools:
     args_extra:
       plugin: -p $PLUGIN
       profile: -f $PROFILE
-      auto: -a
+      all: -a
+      all_tln: -aT
+
   - name: srum_dump
     cmd:
       windows: $DIR_SRUM_DUMP/srum_dump2.exe
