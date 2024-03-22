@@ -111,7 +111,7 @@ def main() -> None:
             for tool in file.tools:
                 if not args.silent:
                     print(f"[*] Running {tool}")
-                ret = tool.run(path, args.out_dir, silent=args.silent, check=True)
+                ret = tool.run(path, args.out_dir, silent=args.silent)
                 if not (ret is None or args.silent or tool.output):
                     print()  # Add an empty line after each tool that ran
 

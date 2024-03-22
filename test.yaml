@@ -32,5 +32,17 @@ files:
           path: $OUTDIR/out/stderr.txt
           append: no
           stderr: yes
-
-      # - cmd: echo 'Test crash' >&2; exit 42
+      - name: can_fail
+      - name: can_fail
+        allow_fail: yes
+      - name: cannot_fail
+        allow_fail: yes
+      - cmd: echo 'Can fail - FILES - $FILE' >&2; exit 42
+        allow_fail: yes
+      # - name: can_fail
+      #   allow_fail: no
+      # - name: cannot_fail
+      # - name: cannot_fail
+      #   allow_fail: no
+      # - cmd: echo 'Can NOT fail - FILES - $FILE' >&2; exit 42
+      #   allow_fail: no

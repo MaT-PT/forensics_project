@@ -17,6 +17,8 @@ tools:
       reg_hive: --REG_HIVE $REG_HIVE
       xlsx_outfile: --XLSX_OUTFILE $XLSX_OUTFILE
       xlsx_template: --XLSX_TEMPLATE $XLSX_TEMPLATE
+
+  ### Tests ###
   - name: test_enabled_yes
     cmd: echo 'Test enabled YES - $FILE'
     enabled: yes
@@ -29,6 +31,15 @@ tools:
   - name: test_disabled_no
     cmd: echo 'Test disabled NO - $FILE'
     disabled: no
+
+  - name: fails
+    cmd: echo 'Fails - CONFIG - $FILE' >&2; exit 42
+  - name: can_fail
+    cmd: echo 'Can fail - CONFIG - $FILE' >&2; exit 42
+    allow_fail: yes
+  - name: cannot_fail
+    cmd: echo 'Can NOT fail - CONFIG - $FILE' >&2; exit 42
+    allow_fail: no
 
 directories:
   regripper: /usr/bin
