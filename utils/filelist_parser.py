@@ -4,6 +4,7 @@ import logging
 import subprocess
 import sys
 from dataclasses import dataclass, field
+from datetime import datetime
 from graphlib import TopologicalSorter
 from pathlib import Path
 from typing import Any, Iterable, Iterator, TypedDict, overload
@@ -20,26 +21,33 @@ else:
 LOGGER = logging.getLogger(__name__)
 
 
-def split_args(args: str) -> list[str]:
-    """Split a string of arguments into a list"""
-    import os
-    import shlex
+@dataclass
+class MutableBool:
+    value: bool = False
 
-    return shlex.split(args, posix=os.name == "posix")
+    def __bool__(self) -> bool:
+        return self.value
 
+    def set(self) -> None:
+        self.value = True
 
-def sub_vars(s: str, var_dict: dict[str, str], upper: bool = True) -> str:
-    """Substitute variables in a string"""
-    for key, value in var_dict.items():
-        key = key.removeprefix("$")
-        s = s.replace(f"${key.upper() if upper else key}", value)
-    return s
+    def reset(self) -> None:
+        self.value = False
 
 
-def sub_vars_all(s: str, var_dict: dict[str, str], upper: bool = True, max_iter: int = 10) -> str:
+def sub_vars(s: str, var_dict: dict[str, str], upper: bool = True, max_iter: int = 10) -> str:
     """Substitute variables in a string, repeatedly until no more substitutions are possible"""
+    if "$" not in s:
+        return s
+    if "TIME" not in var_dict:
+        var_dict["TIME"] = datetime.now().strftime("%H.%M.%S")
+    if "DATE" not in var_dict:
+        var_dict["DATE"] = datetime.now().strftime("%Y-%m-%d")
     for _ in range(max_iter):
-        new_s = sub_vars(s, var_dict, upper)
+        new_s = s
+        for key, value in var_dict.items():
+            key = key.removeprefix("$")
+            new_s = new_s.replace(f"${key.upper() if upper else key}", value)
         if new_s == s:
             return new_s
         s = new_s
@@ -64,6 +72,7 @@ class FileList:
         output: NotRequired[str | FileList.YamlFilesOutput]
         requires: NotRequired[list[str]]
         allow_fail: NotRequired[bool]
+        run_once: NotRequired[bool]
 
     class YamlFilesFile(TypedDict):
         path: str
@@ -82,6 +91,8 @@ class FileList:
         output: Output | None = None
         requires: frozenset[str] = field(default_factory=frozenset)
         allow_fail: bool | None = None
+        run_once: bool = False
+        _has_run: MutableBool = field(default_factory=MutableBool, init=False, compare=False)
 
         @dataclass(frozen=True)
         class Output:
@@ -118,8 +129,9 @@ class FileList:
                 cmd=cmd,
                 extra=data.get("extra", {}),
                 output=None if output is None else cls.Output.from_dict(output),
-                requires=frozenset(data.get("requires", [])),
+                requires=frozenset(file.normalize_path(req) for req in data.get("requires", [])),
                 allow_fail=data.get("allow_fail"),
+                run_once=data.get("run_once", False),
             )
 
         def get_command(
@@ -139,12 +151,16 @@ class FileList:
             elif isinstance(file_path, str):
                 file_path = Path(file_path)
             var_dict = config.dir_vars() | extra_vars
-            var_dict |= {"FILE": str(file_path), "OUTDIR": str(out_dir)}
+            var_dict |= {
+                "FILE": str(file_path),
+                "OUTDIR": str(out_dir),
+                "PARENT": str(file_path.parent),
+            }
             cmd: str | None
             if self.name is not None:
                 tool = config.get_tool(self.name)
                 if not tool.enabled:
-                    LOGGER.info(f"Tool '{self.name}' is disabled in config")
+                    LOGGER.info(f"Tool '{tool.name}' is disabled in config, skipping...")
                     return None
                 cmd = tool.cmd
                 if tool.args:
@@ -158,10 +174,10 @@ class FileList:
             else:
                 cmd = self.cmd
             if cmd is None:
-                raise ValueError("Tool must have either 'cmd' or 'name' key")
+                raise ValueError("Tool must have either 'name' or 'cmd' key")
             if extra_args is not None:
                 cmd += f" {extra_args}"
-            return sub_vars_all(cmd, var_dict)
+            return sub_vars(cmd, var_dict)
 
         def run(
             self,
@@ -171,9 +187,23 @@ class FileList:
             extra_args: str | None = None,
             silent: bool = False,
         ) -> int | None:
+            if out_dir is None:
+                out_dir = Path(".")
+            elif isinstance(out_dir, str):
+                out_dir = Path(out_dir)
+            if file_path is None:
+                file_path = out_dir / self.file.path
+            elif isinstance(file_path, str):
+                file_path = Path(file_path)
             cmd = self.get_command(file_path, out_dir, extra_vars, extra_args)
             if cmd is None:
                 return None
+
+            if self.run_once:
+                if self._has_run:
+                    LOGGER.info("Tool already ran once, skipping...")
+                    return None
+                self._has_run.set()
             config = self.file.file_list.config
             if self.name is None or self.allow_fail is not None:
                 check = not self.allow_fail
@@ -183,8 +213,12 @@ class FileList:
             LOGGER.info(f"Running command: {cmd}")
             if self.output is not None:
                 var_dict = config.dir_vars() | extra_vars
-                var_dict |= {"FILE": str(file_path), "OUTDIR": str(out_dir)}
-                out_path = Path(sub_vars_all(self.output.path, var_dict))
+                var_dict |= {
+                    "FILE": str(file_path),
+                    "OUTDIR": str(out_dir),
+                    "PARENT": str(file_path.parent),
+                }
+                out_path = Path(sub_vars(self.output.path, var_dict))
                 LOGGER.debug(
                     f"Writing output to file: '{out_path}' (%s, %s STDERR)",
                     "appending" if self.output.append else "overwriting",
@@ -221,7 +255,7 @@ class FileList:
                 s = f"Tool: '{self.name}'"
             else:
                 s = f"Command: '{self.cmd}'"
-            s += f" [file: '{self.file.path}']"
+            s += f" [path: '{self.file.path}']"
             return s
 
         def __hash__(self) -> int:
@@ -234,6 +268,7 @@ class FileList:
                     self.output,
                     self.file,
                     self.allow_fail,
+                    self.run_once,
                 )
             )
 
@@ -274,7 +309,7 @@ class FileList:
 
         @staticmethod
         def normalize_path(path: str) -> str:
-            return path.replace("\\", "/").lstrip("C:").lstrip("c:").strip("/")
+            return path.replace("\\", "/").lstrip("C:/").lstrip("c:/").strip("/")
 
         def __hash__(self) -> int:
             return hash((self.path, tuple(self.tools), self.file_list.config))

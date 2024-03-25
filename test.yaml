@@ -3,9 +3,9 @@ files:
     tool:
       cmd: "echo 'Test file: $FILE'; echo 'Test STDERR' >&2; ls -l '$OUTDIR/$MFT'"
       requires:
-        - $MFT
+        - C:\$MFT
   - $MFT
-  - path: Users/*/Desktop
+  - path: C:\Users\*\Desktop
     tools:
       - "echo 'Test dir: $FILE'"
       - cmd: tree -a $FILE
@@ -14,6 +14,14 @@ files:
       - name: test_enabled_no
       - name: test_disabled_yes
       - name: test_disabled_no
+      - name: rm
+        extra:
+          path: $OUTDIR/out/vars.txt
+        run_once: yes
+      - cmd: "echo 'Test vars - FILE: $FILE - OUTDIR: $OUTDIR - PARENT: $PARENT - DATE: $DATE - TIME: $TIME'"
+        output:
+          path: $OUTDIR/out/vars.txt
+          append: yes
   - path: Users/*/Documents
     tools:
       - "echo 'Test dir: $FILE'"
@@ -26,11 +34,11 @@ files:
       - cmd: echo 'STDOUT - $FILE'; echo 'STDERR - $FILE' >&2
         output:
           path: $OUTDIR/out/stdout.txt
-          append: no
+          append: yes
       - cmd: echo 'STDOUT - $FILE'; echo 'STDERR - $FILE' >&2
         output:
           path: $OUTDIR/out/stderr.txt
-          append: no
+          append: yes
           stderr: yes
       - name: can_fail
       - name: can_fail
