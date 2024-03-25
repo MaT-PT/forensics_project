@@ -3,9 +3,9 @@ files:
     tool:
       cmd: "echo 'Test file: $FILE'; echo 'Test STDERR' >&2; ls -l '$OUTDIR/$MFT'"
       requires:
-        - $MFT
+        - C:\$MFT
   - $MFT
-  - path: Users/*/Desktop
+  - path: C:\Users\*\Desktop
     tools:
       - "echo 'Test dir: $FILE'"
       - cmd: tree -a $FILE

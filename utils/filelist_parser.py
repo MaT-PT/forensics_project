@@ -118,7 +118,7 @@ class FileList:
                 cmd=cmd,
                 extra=data.get("extra", {}),
                 output=None if output is None else cls.Output.from_dict(output),
-                requires=frozenset(data.get("requires", [])),
+                requires=frozenset(file.normalize_path(req) for req in data.get("requires", [])),
                 allow_fail=data.get("allow_fail"),
             )
 
@@ -274,7 +274,7 @@ class FileList:
 
         @staticmethod
         def normalize_path(path: str) -> str:
-            return path.replace("\\", "/").lstrip("C:").lstrip("c:").strip("/")
+            return path.replace("\\", "/").lstrip("C:/").lstrip("c:/").strip("/")
 
         def __hash__(self) -> int:
             return hash((self.path, tuple(self.tools), self.file_list.config))
