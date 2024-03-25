@@ -1,7 +1,12 @@
 import shutil
+import subprocess
+from logging import Logger
+from typing import overload
 
 SIZE_UNITS = ["B", "K", "M", "G", "T", "P"]
 REQUIRED_TOOLS = ["mmls", "fls", "icat"]
+
+TSK_PATH: str | None = None
 
 
 def pretty_size(size: int, compact: bool = True) -> str:
@@ -18,12 +23,41 @@ def pretty_size(size: int, compact: bool = True) -> str:
     return f"{size}{unit}"
 
 
-def check_program_in_path(name: str, path: str | None = None) -> bool:
-    res = shutil.which(name, path=path)
-    return res is not None
+def set_tsk_path(path: str | None) -> None:
+    global TSK_PATH
+    TSK_PATH = path
 
 
-def check_required_tools(path: str | None = None) -> None:
+def get_program_path(name: str) -> str:
+    res = shutil.which(name, path=TSK_PATH)
+    if res is None:
+        raise FileNotFoundError(f"{name} not found in {'PATH' if TSK_PATH is None else TSK_PATH}")
+    return res
+
+
+def check_required_tools() -> None:
     for tool in REQUIRED_TOOLS:
-        if not check_program_in_path(tool, path):
-            raise FileNotFoundError(f"{tool} not found in {'PATH' if path is None else path}")
+        get_program_path(tool)
+
+
+@overload
+def run_program(name: str, args: list[str], logger: Logger, encoding: None = None) -> bytes: ...
+@overload
+def run_program(name: str, args: list[str], logger: Logger, encoding: str) -> str: ...
+
+
+def run_program(
+    name: str, args: list[str], logger: Logger, encoding: str | None = None
+) -> str | bytes:
+    try:
+        logger.debug(f"Running {name} {' '.join(args)}")
+        exec_path = get_program_path(name)
+        res = subprocess.check_output([exec_path] + args, encoding=encoding)
+        if isinstance(res, bytes):
+            logger.debug(f"{name} returned {len(res)} bytes")
+        else:
+            logger.debug(f"{name} returned: {res}")
+        return res
+    except subprocess.CalledProcessError as e:
+        print(f"[!] Error running {name}: {e}")
+        exit(e.returncode)

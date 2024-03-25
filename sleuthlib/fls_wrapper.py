@@ -1,10 +1,8 @@
-from __future__ import annotations
-
 import logging
-import subprocess
 
 from .fls_types import FsEntry, FsEntryList
 from .mmls_types import Partition
+from .utils import run_program
 
 LOGGER = logging.getLogger(__name__)
 
@@ -21,13 +19,7 @@ def fls(
     if root is not None:
         args.append(str(root.meta_address.address))
 
-    try:
-        LOGGER.debug(f"Running fls {' '.join(args)}")
-        res = subprocess.check_output(["fls"] + args, encoding="utf-8")
-        LOGGER.debug(f"fls returned: {res}")
-        return FsEntryList(
-            [FsEntry.from_str(line, partition, root, case_insensitive) for line in res.splitlines()]
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Error running fls: {e}")
-        exit(e.returncode)
+    res = run_program("fls", args, logger=LOGGER, encoding="utf-8")
+    return FsEntryList(
+        [FsEntry.from_str(line, partition, root, case_insensitive) for line in res.splitlines()]
+    )

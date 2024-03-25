@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 import logging
-import subprocess
 from typing import Iterable
 
 from .mmls_types import PartitionTable
 from .types import ImgType, VsType
+from .utils import run_program
 
 LOGGER = logging.getLogger(__name__)
 
@@ -30,11 +28,5 @@ def mmls(
         image_files = (image_files,)
     args.extend(image_files)
 
-    try:
-        LOGGER.debug(f"Running mmls {' '.join(args)}")
-        res = subprocess.check_output(["mmls"] + args, encoding="utf-8")
-        LOGGER.debug(f"mmls returned: {res}")
-        return PartitionTable.from_str(res, image_files, imgtype)
-    except subprocess.CalledProcessError as e:
-        print(f"Error running mmls: {e}")
-        exit(e.returncode)
+    res = run_program("mmls", args, logger=LOGGER, encoding="utf-8")
+    return PartitionTable.from_str(res, image_files, imgtype)

@@ -4,8 +4,7 @@ import logging
 import sys
 from pathlib import Path
 
-from sleuthlib import mmls
-from sleuthlib.utils import check_required_tools
+from sleuthlib import check_required_tools, mmls, set_tsk_path
 from utils.argparse_utils import parse_args
 from utils.config_parser import Config
 from utils.filelist_parser import FileList
@@ -26,8 +25,9 @@ def main() -> None:
     elif args.silent:
         logging.getLogger().setLevel(logging.ERROR)
 
+    set_tsk_path(args.tsk_path)
     try:
-        check_required_tools(args.tsk_path)
+        check_required_tools()
     except FileNotFoundError as e:
         print("[!] Error:", e)
         exit(1)
@@ -112,6 +112,8 @@ def main() -> None:
                 if not args.silent:
                     print(f"[*] Running {tool}")
                 ret = tool.run(path, args.out_dir, silent=args.silent)
+                if not args.silent and ret is None:
+                    print("[!] Tool did not run (disabled or run_once)")
                 if not (ret is None or args.silent or tool.output):
                     print()  # Add an empty line after each tool that ran
 
