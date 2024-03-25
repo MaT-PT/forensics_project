@@ -59,5 +59,5 @@ def run_program(
             logger.debug(f"{name} returned: {res}")
         return res
     except subprocess.CalledProcessError as e:
-        print(f"[!] Error running {name}: {e}")
+        logger.critical(f"Error running {name}: {e}")
         exit(e.returncode)
