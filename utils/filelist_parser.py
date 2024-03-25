@@ -4,6 +4,7 @@ import logging
 import subprocess
 import sys
 from dataclasses import dataclass, field
+from datetime import datetime
 from graphlib import TopologicalSorter
 from pathlib import Path
 from typing import Any, Iterable, Iterator, TypedDict, overload
@@ -20,26 +21,19 @@ else:
 LOGGER = logging.getLogger(__name__)
 
 
-def split_args(args: str) -> list[str]:
-    """Split a string of arguments into a list"""
-    import os
-    import shlex
-
-    return shlex.split(args, posix=os.name == "posix")
-
-
-def sub_vars(s: str, var_dict: dict[str, str], upper: bool = True) -> str:
-    """Substitute variables in a string"""
-    for key, value in var_dict.items():
-        key = key.removeprefix("$")
-        s = s.replace(f"${key.upper() if upper else key}", value)
-    return s
-
-
-def sub_vars_all(s: str, var_dict: dict[str, str], upper: bool = True, max_iter: int = 10) -> str:
+def sub_vars(s: str, var_dict: dict[str, str], upper: bool = True, max_iter: int = 10) -> str:
     """Substitute variables in a string, repeatedly until no more substitutions are possible"""
+    if "$" not in s:
+        return s
+    if "TIME" not in var_dict:
+        var_dict["TIME"] = datetime.now().strftime("%H.%M.%S")
+    if "DATE" not in var_dict:
+        var_dict["DATE"] = datetime.now().strftime("%Y-%m-%d")
     for _ in range(max_iter):
-        new_s = sub_vars(s, var_dict, upper)
+        new_s = s
+        for key, value in var_dict.items():
+            key = key.removeprefix("$")
+            new_s = new_s.replace(f"${key.upper() if upper else key}", value)
         if new_s == s:
             return new_s
         s = new_s
@@ -139,7 +133,11 @@ class FileList:
             elif isinstance(file_path, str):
                 file_path = Path(file_path)
             var_dict = config.dir_vars() | extra_vars
-            var_dict |= {"FILE": str(file_path), "OUTDIR": str(out_dir)}
+            var_dict |= {
+                "FILE": str(file_path),
+                "OUTDIR": str(out_dir),
+                "PARENT": str(file_path.parent),
+            }
             cmd: str | None
             if self.name is not None:
                 tool = config.get_tool(self.name)
@@ -161,7 +159,7 @@ class FileList:
                 raise ValueError("Tool must have either 'cmd' or 'name' key")
             if extra_args is not None:
                 cmd += f" {extra_args}"
-            return sub_vars_all(cmd, var_dict)
+            return sub_vars(cmd, var_dict)
 
         def run(
             self,
@@ -171,6 +169,14 @@ class FileList:
             extra_args: str | None = None,
             silent: bool = False,
         ) -> int | None:
+            if out_dir is None:
+                out_dir = Path(".")
+            elif isinstance(out_dir, str):
+                out_dir = Path(out_dir)
+            if file_path is None:
+                file_path = out_dir / self.file.path
+            elif isinstance(file_path, str):
+                file_path = Path(file_path)
             cmd = self.get_command(file_path, out_dir, extra_vars, extra_args)
             if cmd is None:
                 return None
@@ -183,8 +189,12 @@ class FileList:
             LOGGER.info(f"Running command: {cmd}")
             if self.output is not None:
                 var_dict = config.dir_vars() | extra_vars
-                var_dict |= {"FILE": str(file_path), "OUTDIR": str(out_dir)}
-                out_path = Path(sub_vars_all(self.output.path, var_dict))
+                var_dict |= {
+                    "FILE": str(file_path),
+                    "OUTDIR": str(out_dir),
+                    "PARENT": str(file_path.parent),
+                }
+                out_path = Path(sub_vars(self.output.path, var_dict))
                 LOGGER.debug(
                     f"Writing output to file: '{out_path}' (%s, %s STDERR)",
                     "appending" if self.output.append else "overwriting",
@@ -221,7 +231,7 @@ class FileList:
                 s = f"Tool: '{self.name}'"
             else:
                 s = f"Command: '{self.cmd}'"
-            s += f" [file: '{self.file.path}']"
+            s += f" [path: '{self.file.path}']"
             return s
 
         def __hash__(self) -> int:
