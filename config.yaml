@@ -27,6 +27,14 @@ tools:
       dir: "$DIR"
     allow_fail: yes
 
+  - name: rm
+    cmd:
+      windows: del /F /Q
+      linux: rm -f
+    args_extra:
+      path: "$PATH"
+    allow_fail: yes
+
   - name: regripper
     cmd:
       windows: $DIR_REGRIPPER/rip.exe

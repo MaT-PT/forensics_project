@@ -21,6 +21,20 @@ else:
 LOGGER = logging.getLogger(__name__)
 
 
+@dataclass
+class MutableBool:
+    value: bool = False
+
+    def __bool__(self) -> bool:
+        return self.value
+
+    def set(self) -> None:
+        self.value = True
+
+    def reset(self) -> None:
+        self.value = False
+
+
 def sub_vars(s: str, var_dict: dict[str, str], upper: bool = True, max_iter: int = 10) -> str:
     """Substitute variables in a string, repeatedly until no more substitutions are possible"""
     if "$" not in s:
@@ -58,6 +72,7 @@ class FileList:
         output: NotRequired[str | FileList.YamlFilesOutput]
         requires: NotRequired[list[str]]
         allow_fail: NotRequired[bool]
+        run_once: NotRequired[bool]
 
     class YamlFilesFile(TypedDict):
         path: str
@@ -76,6 +91,8 @@ class FileList:
         output: Output | None = None
         requires: frozenset[str] = field(default_factory=frozenset)
         allow_fail: bool | None = None
+        run_once: bool = False
+        _has_run: MutableBool = field(default_factory=MutableBool, init=False, compare=False)
 
         @dataclass(frozen=True)
         class Output:
@@ -114,6 +131,7 @@ class FileList:
                 output=None if output is None else cls.Output.from_dict(output),
                 requires=frozenset(file.normalize_path(req) for req in data.get("requires", [])),
                 allow_fail=data.get("allow_fail"),
+                run_once=data.get("run_once", False),
             )
 
         def get_command(
@@ -142,7 +160,7 @@ class FileList:
             if self.name is not None:
                 tool = config.get_tool(self.name)
                 if not tool.enabled:
-                    LOGGER.info(f"Tool '{self.name}' is disabled in config")
+                    LOGGER.info(f"Tool '{tool.name}' is disabled in config, skipping...")
                     return None
                 cmd = tool.cmd
                 if tool.args:
@@ -156,7 +174,7 @@ class FileList:
             else:
                 cmd = self.cmd
             if cmd is None:
-                raise ValueError("Tool must have either 'cmd' or 'name' key")
+                raise ValueError("Tool must have either 'name' or 'cmd' key")
             if extra_args is not None:
                 cmd += f" {extra_args}"
             return sub_vars(cmd, var_dict)
@@ -180,6 +198,12 @@ class FileList:
             cmd = self.get_command(file_path, out_dir, extra_vars, extra_args)
             if cmd is None:
                 return None
+
+            if self.run_once:
+                if self._has_run:
+                    LOGGER.info("Tool already ran once, skipping...")
+                    return None
+                self._has_run.set()
             config = self.file.file_list.config
             if self.name is None or self.allow_fail is not None:
                 check = not self.allow_fail
@@ -244,6 +268,7 @@ class FileList:
                     self.output,
                     self.file,
                     self.allow_fail,
+                    self.run_once,
                 )
             )
 
