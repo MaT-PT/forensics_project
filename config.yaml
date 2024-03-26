@@ -24,7 +24,7 @@ tools:
       windows: cmd /X /C md
       linux: mkdir -p
     args_extra:
-      dir: "$DIR"
+      dir: "${PATH:$DIR}"
     allow_fail: yes
 
   - name: rm
@@ -32,7 +32,7 @@ tools:
       windows: del /F /Q
       linux: rm -f
     args_extra:
-      path: "$PATH"
+      path: "${PATH:$PATH}"
     allow_fail: yes
 
   - name: regripper
