@@ -15,7 +15,7 @@ class Arguments:
     imgtype: ImgType | None
     sector_size: int | None
     offset: Sectors | None
-    list_parts: bool
+    ls: bool
     part_num: int | None
     file: list[str] | None
     file_list: list[str] | None
@@ -90,89 +90,91 @@ def parse_args() -> Arguments:
     parser = ArgumentParser(description="TheSleuthKit Python Interface")
     parser.add_argument("image", nargs="+", help="The image(s) to analyze")
     parser.add_argument(
-        "--tsk-path",
         "-T",
+        "--tsk-path",
         help="The directory where the TSK tools are installed (default: search in PATH)",
     )
     parser.add_argument(
-        "--vstype",
         "-t",
+        "--vstype",
         action=ListableAction,
         choices=PART_TABLE_TYPES,
         help="The type of volume system (use '-t list' to list supported types)",
     )
     parser.add_argument(
-        "--imgtype",
         "-i",
+        "--imgtype",
         action=ListableAction,
         choices=IMG_TYPES,
         help="The format of the image file (use '-i list' to list supported types)",
     )
     parser.add_argument(
-        "--sector-size",
         "-b",
+        "--sector-size",
         type=int_min(512),
         help="The size (in bytes) of the device sectors",
     )
     parser.add_argument(
-        "--offset",
         "-o",
+        "--offset",
         type=int_min(0),
         help="Offset to the start of the volume that contains the partition system (in sectors)",
     )
     parser.add_argument(
-        "--list-parts",
-        "-l",
-        action="store_true",
-        help="List the partitions and exit (default if no file is specified)",
-    )
-    parser.add_argument(
-        "--part-num",
         "-p",
+        "--part-num",
         type=int_min(0),
         help="The partition number (slot) to use",
     )
+    xgrp_list_save = parser.add_mutually_exclusive_group()
+    xgrp_list_save.add_argument(
+        "-l",
+        "--list",
+        action="store_true",
+        dest="ls",
+        help="If no file is specified, list the partitions; otherwise, list the given files",
+    )
+    xgrp_list_save.add_argument(
+        "-a",
+        "--save-all",
+        action="store_true",
+        help="Save all files and directories in the partition",
+    )
     parser.add_argument(
-        "--file",
         "-f",
+        "--file",
         action="extend",
         nargs="+",
         help="The file(s)/dir(s) to extract",
     )
     parser.add_argument(
-        "--file-list",
         "-F",
+        "--file-list",
         action="extend",
         nargs="+",
         help="YAML file(s) containing the file(s)/dir(s) to extract",
     )
     parser.add_argument(
-        "--save-all",
-        "-a",
-        action="store_true",
-        help="Save all files and directories in the partition",
-    )
-    parser.add_argument(
-        "--out-dir",
         "-d",
+        "--out-dir",
         help="The directory to extract the file(s)/dir(s) to",
     )
     parser.add_argument(
-        "--case-sensitive",
         "-S",
+        "--case-sensitive",
         action="store_true",
         help="Case-sensitive file search (default is case-insensitive)",
     )
     xgrp_verbosity = parser.add_mutually_exclusive_group()
     xgrp_verbosity.add_argument(
-        "--silent",
         "-s",
+        "--silent",
         action="store_true",
         help="Suppress output",
     )
     xgrp_verbosity.add_argument(
-        "--verbose",
         "-v",
+        "--verbose",
         action="count",
         default=0,
         help="Verbose output (use multiple times for more verbosity)",

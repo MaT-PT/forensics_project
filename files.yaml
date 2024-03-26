@@ -13,6 +13,7 @@ files:
           all_tln: on
         output:
           path: $OUTDIR/_regripper/all_sam_tln.txt
+
   - Windows/System32/config/SAM.LOG*
 
   - path: Windows/System32/config/SECURITY
@@ -27,6 +28,7 @@ files:
           all_tln: on
         output:
           path: $OUTDIR/_regripper/all_security_tln.txt
+
   - Windows/System32/config/SECURITY.LOG*
 
   - path: Windows/System32/config/SOFTWARE
@@ -45,6 +47,7 @@ files:
           all_tln: on
         output:
           path: $OUTDIR/_regripper/all_software_tln.txt
+
   - Windows/System32/config/SOFTWARE.LOG*
 
   - path: Windows/System32/config/SYSTEM
@@ -67,6 +70,7 @@ files:
           all_tln: on
         output:
           path: $OUTDIR/_regripper/all_system_tln.txt
+
   - Windows/System32/config/SYSTEM.LOG*
 
   - path: Windows/System32/config/DEFAULT
@@ -81,10 +85,15 @@ files:
           all_tln: on
         output:
           path: $OUTDIR/_regripper/all_security_tln.txt
+
   - Windows/System32/config/DEFAULT.LOG*
 
   - path: Users/*/NTUSER.DAT
     tools:
+      - name: rm
+        extra:
+          path: $OUTDIR/_regripper/mp2.txt
+        run_once: yes
       - name: print_filename_separated
         output:
           path: $OUTDIR/_regripper/mp2.txt
@@ -95,6 +104,11 @@ files:
         output:
           path: $OUTDIR/_regripper/mp2.txt
           append: yes
+
+      - name: rm
+        extra:
+          path: $OUTDIR/_regripper/userassist.txt
+        run_once: yes
       - name: print_filename_separated
         output:
           path: $OUTDIR/_regripper/userassist.txt
@@ -105,6 +119,11 @@ files:
         output:
           path: $OUTDIR/_regripper/userassist.txt
           append: yes
+
+      - name: rm
+        extra:
+          path: $OUTDIR/_regripper/recentdocs.txt
+        run_once: yes
       - name: print_filename_separated
         output:
           path: $OUTDIR/_regripper/recentdocs.txt
@@ -115,6 +134,11 @@ files:
         output:
           path: $OUTDIR/_regripper/recentdocs.txt
           append: yes
+
+      - name: rm
+        extra:
+          path: $OUTDIR/_regripper/all_ntuser.txt
+        run_once: yes
       - name: print_filename_separated
         output:
           path: $OUTDIR/_regripper/all_ntuser.txt
@@ -125,6 +149,11 @@ files:
         output:
           path: $OUTDIR/_regripper/all_ntuser.txt
           append: yes
+
+      - name: rm
+        extra:
+          path: $OUTDIR/_regripper/all_ntuser_tln.txt
+        run_once: yes
       - name: print_filename_separated
         output:
           path: $OUTDIR/_regripper/all_ntuser_tln.txt
@@ -135,10 +164,15 @@ files:
         output:
           path: $OUTDIR/_regripper/all_ntuser_tln.txt
           append: yes
+
   - Users/*/NTUSER.DAT.LOG*
 
   - path: Users/*/AppData/Local/Microsoft/Windows/UsrClass.dat
     tools:
+      - name: rm
+        extra:
+          path: $OUTDIR/_regripper/shellbags.txt
+        run_once: yes
       - name: print_filename_separated
         output:
           path: $OUTDIR/_regripper/shellbags.txt
@@ -149,6 +183,11 @@ files:
         output:
           path: $OUTDIR/_regripper/shellbags.txt
           append: yes
+
+      - name: rm
+        extra:
+          path: $OUTDIR/_regripper/all_usrclass.txt
+        run_once: yes
       - name: print_filename_separated
         output:
           path: $OUTDIR/_regripper/all_usrclass.txt
@@ -159,6 +198,11 @@ files:
         output:
           path: $OUTDIR/_regripper/all_usrclass.txt
           append: yes
+
+      - name: rm
+        extra:
+          path: $OUTDIR/_regripper/all_usrclass_tln.txt
+        run_once: yes
       - name: print_filename_separated
         output:
           path: $OUTDIR/_regripper/all_usrclass_tln.txt
@@ -169,10 +213,15 @@ files:
         output:
           path: $OUTDIR/_regripper/all_usrclass_tln.txt
           append: yes
+
   - Users/*/AppData/Local/Microsoft/Windows/UsrClass.dat.LOG*
 
   - path: Windows/ServiceProfiles/*/NTUSER.DAT
     tools:
+      - name: rm
+        extra:
+          path: $OUTDIR/_regripper/serviceprofiles_mp2.txt
+        run_once: yes
       - name: print_filename_separated
         output:
           path: $OUTDIR/_regripper/serviceprofiles_mp2.txt
@@ -183,6 +232,11 @@ files:
         output:
           path: $OUTDIR/_regripper/serviceprofiles_mp2.txt
           append: yes
+
+      - name: rm
+        extra:
+          path: $OUTDIR/_regripper/serviceprofiles_userassist.txt
+        run_once: yes
       - name: print_filename_separated
         output:
           path: $OUTDIR/_regripper/serviceprofiles_userassist.txt
@@ -193,6 +247,11 @@ files:
         output:
           path: $OUTDIR/_regripper/serviceprofiles_userassist.txt
           append: yes
+
+      - name: rm
+        extra:
+          path: $OUTDIR/_regripper/serviceprofiles_recentdocs.txt
+        run_once: yes
       - name: print_filename_separated
         output:
           path: $OUTDIR/_regripper/serviceprofiles_recentdocs.txt
@@ -203,6 +262,11 @@ files:
         output:
           path: $OUTDIR/_regripper/serviceprofiles_recentdocs.txt
           append: yes
+
+      - name: rm
+        extra:
+          path: $OUTDIR/_regripper/serviceprofiles_all_ntuser.txt
+        run_once: yes
       - name: print_filename_separated
         output:
           path: $OUTDIR/_regripper/serviceprofiles_all_ntuser.txt
@@ -213,6 +277,11 @@ files:
         output:
           path: $OUTDIR/_regripper/serviceprofiles_all_ntuser.txt
           append: yes
+
+      - name: rm
+        extra:
+          path: $OUTDIR/_regripper/serviceprofiles_all_ntuser_tln.txt
+        run_once: yes
       - name: print_filename_separated
         output:
           path: $OUTDIR/_regripper/serviceprofiles_all_ntuser_tln.txt
@@ -223,6 +292,7 @@ files:
         output:
           path: $OUTDIR/_regripper/serviceprofiles_all_ntuser_tln.txt
           append: yes
+
   - Windows/ServiceProfiles/*/NTUSER.DAT.LOG*
 
   - path: Windows/System32/sru/SRUDB.dat

@@ -203,6 +203,15 @@ class FsEntry:
             if must_close:
                 file.close()
 
+    def short_desc(self) -> str:
+        attribs: list[str] = []
+        if self.is_deleted:
+            attribs.append("deleted")
+        if self.is_reallocated:
+            attribs.append("reallocated")
+        attribs_str = f" ({', '.join(attribs)})" if attribs else ""
+        return f"{self.type_filename.value}/{self.type_metadata.value}: {self.path}{attribs_str}"
+
     def __str__(self) -> str:
         attribs: list[str] = []
         if self.is_deleted:
