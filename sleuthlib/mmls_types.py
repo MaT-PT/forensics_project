@@ -61,9 +61,20 @@ class Partition:
     def is_filesystem(self) -> bool:
         return self.slot.replace(":", "").isdecimal()
 
+    @cached_property
+    def is_ntfs(self) -> bool:
+        try:
+            return "$MFT" in self.root_entries(can_fail=True)
+        except ChildProcessError:
+            return False
+
     @cache
-    def root_entries(self, case_insensitive: bool = True) -> fls_types.FsEntryList:
-        return fls_wrapper.fls(self, case_insensitive=case_insensitive)
+    def root_entries(
+        self, case_insensitive: bool = True, can_fail: bool = False
+    ) -> fls_types.FsEntryList:
+        return fls_wrapper.fls(
+            self, case_insensitive=case_insensitive, can_fail=can_fail, silent_stderr=can_fail
+        )
 
     @cache
     def short_desc(self) -> str:

@@ -1,5 +1,5 @@
 import logging
-from typing import Iterable
+from typing import Any, Iterable
 
 from .mmls_types import PartitionTable
 from .types import ImgType, VsType
@@ -14,6 +14,7 @@ def mmls(
     imgtype: ImgType | None = None,
     sector_size: int | None = None,
     offset: int | None = None,
+    **kwargs: Any,
 ) -> PartitionTable:
     args: list[str] = []
     if vstype is not None:
@@ -28,5 +29,5 @@ def mmls(
         image_files = (image_files,)
     args.extend(image_files)
 
-    res = run_program("mmls", args, logger=LOGGER, encoding="utf-8")
+    res = run_program("mmls", args, logger=LOGGER, encoding="utf-8", **kwargs)
     return PartitionTable.from_str(res, image_files, imgtype)

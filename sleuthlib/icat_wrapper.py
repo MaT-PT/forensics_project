@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from .mmls_types import Partition
 from .types import MetaAddress
@@ -7,7 +8,7 @@ from .utils import run_program
 LOGGER = logging.getLogger(__name__)
 
 
-def icat(partition: Partition, inode: MetaAddress) -> bytes:
+def icat(partition: Partition, inode: MetaAddress, **kwargs: Any) -> bytes:
     args: list[str] = []
     args.append("-r")  # Recover deleted files
     args += ["-o", str(partition.start)]  # Image offset
@@ -16,5 +17,5 @@ def icat(partition: Partition, inode: MetaAddress) -> bytes:
     args.extend(partition.partition_table.image_files)
     args.append(inode.address)
 
-    res = run_program("icat", args, logger=LOGGER)
+    res = run_program("icat", args, logger=LOGGER, encoding=None, **kwargs)
     return res

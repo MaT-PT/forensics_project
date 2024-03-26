@@ -156,8 +156,8 @@ class FsEntry:
     @overload
     def save_file(
         self,
-        file: str | Path | None = None,
-        base_path: str | Path | None = None,
+        file: str | Path | None = ...,
+        base_path: str | Path | None = ...,
         parents: bool = False,
     ) -> tuple[Path | None, int]: ...
     @overload

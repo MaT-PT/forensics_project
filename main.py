@@ -8,7 +8,8 @@ from colorama import just_fix_windows_console
 from termcolor import colored
 
 from sleuthlib import check_required_tools, mmls, set_tsk_path
-from utils.argparse_utils import parse_args
+from sleuthlib.fls_types import FsEntryList
+from utils.argparse_utils import Arguments, parse_args
 from utils.colored_logging import init_logging_colors, print_error, print_info, print_warning
 from utils.config_parser import Config
 from utils.filelist_parser import FileList
@@ -26,6 +27,31 @@ init_logging_colors()
 
 SCRIPT_DIR = Path(__file__ if "__file__" in globals() else sys.argv[0]).parent
 CONFIG_FILE = SCRIPT_DIR / "config.yaml"
+
+
+def process_files(file_list: FileList, root_entries: FsEntryList, args: Arguments) -> None:
+    for file in file_list:
+        entries = root_entries.find_path(file.path)
+        for entry in entries:
+            if args.ls:
+                print(entry.short_desc())
+                continue
+
+            if not args.silent:
+                print_info(f"Extracting: {entry.short_desc()}")
+            path: Path | None
+            if entry.is_directory:
+                path, _, _ = entry.save_dir(base_path=args.out_dir, parents=True)
+            else:
+                path, _ = entry.save_file(base_path=args.out_dir, parents=True)
+            for tool in file.tools:
+                if not args.silent:
+                    print_info(f"Running {tool}")
+                ret = tool.run(path, args.out_dir, silent=args.silent)
+                if not args.silent and ret is None:
+                    print_warning("Tool did not run (disabled or run_once)")
+                if not (ret is None or args.silent or tool.output):
+                    print()  # Add an empty line after each tool that ran
 
 
 def main() -> None:
@@ -111,28 +137,7 @@ def main() -> None:
             print(f"    - {file.path}")
         print()
 
-    for file in file_list:
-        entries = root_entries.find_path(file.path)
-        for entry in entries:
-            if args.ls:
-                print(entry.short_desc())
-                continue
-
-            if not args.silent:
-                print_info(f"Extracting: {entry.short_desc()}")
-            path: Path | None
-            if entry.is_directory:
-                path, _, _ = entry.save_dir(base_path=args.out_dir, parents=True)
-            else:
-                path, _ = entry.save_file(base_path=args.out_dir, parents=True)
-            for tool in file.tools:
-                if not args.silent:
-                    print_info(f"Running {tool}")
-                ret = tool.run(path, args.out_dir, silent=args.silent)
-                if not args.silent and ret is None:
-                    print_warning("Tool did not run (disabled or run_once)")
-                if not (ret is None or args.silent or tool.output):
-                    print()  # Add an empty line after each tool that ran
+    process_files(file_list, root_entries, args)
 
 
 if __name__ == "__main__":
