@@ -60,7 +60,7 @@ def main() -> None:
         sector_size=args.sector_size,
         offset=args.offset,
     )
-    if args.list_parts or not (args.file or args.file_list or args.save_all):
+    if args.ls and not file_list:
         print(res_mmls)
         return
 
@@ -104,9 +104,9 @@ def main() -> None:
 
     if not args.silent:
         if not file_list:
-            print_warning("No files to extract")
+            print_warning(f"No files to {'list' if args.ls else 'extract'}")
             return
-        print_info("Files to extract:")
+        print_info(f"Files to {'list' if args.ls else 'extract'}:")
         for file in file_list:
             print(f"    - {file.path}")
         print()
@@ -114,8 +114,12 @@ def main() -> None:
     for file in file_list:
         entries = root_entries.find_path(file.path)
         for entry in entries:
+            if args.ls:
+                print(entry.short_desc())
+                continue
+
             if not args.silent:
-                print_info(f"Extracting: {entry}")
+                print_info(f"Extracting: {entry.short_desc()}")
             path: Path | None
             if entry.is_directory:
                 path, _, _ = entry.save_dir(base_path=args.out_dir, parents=True)

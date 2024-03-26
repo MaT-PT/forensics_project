@@ -15,7 +15,7 @@ class Arguments:
     imgtype: ImgType | None
     sector_size: int | None
     offset: Sectors | None
-    list_parts: bool
+    ls: bool
     part_num: int | None
     file: list[str] | None
     file_list: list[str] | None
@@ -121,16 +121,24 @@ def parse_args() -> Arguments:
         help="Offset to the start of the volume that contains the partition system (in sectors)",
     )
     parser.add_argument(
-        "--list-parts",
-        "-l",
-        action="store_true",
-        help="List the partitions and exit (default if no file is specified)",
-    )
-    parser.add_argument(
         "--part-num",
         "-p",
         type=int_min(0),
         help="The partition number (slot) to use",
+    )
+    xgrp_list_save = parser.add_mutually_exclusive_group()
+    xgrp_list_save.add_argument(
+        "--list",
+        "-l",
+        action="store_true",
+        dest="ls",
+        help="If no file is specified, list the partitions; otherwise, list the given files",
+    )
+    xgrp_list_save.add_argument(
+        "--save-all",
+        "-a",
+        action="store_true",
+        help="Save all files and directories in the partition",
     )
     parser.add_argument(
         "--file",
@@ -145,12 +153,6 @@ def parse_args() -> Arguments:
         action="extend",
         nargs="+",
         help="YAML file(s) containing the file(s)/dir(s) to extract",
-    )
-    parser.add_argument(
-        "--save-all",
-        "-a",
-        action="store_true",
-        help="Save all files and directories in the partition",
     )
     parser.add_argument(
         "--out-dir",
