@@ -78,7 +78,7 @@ class Partition:
 
     @cache
     def short_desc(self) -> str:
-        return f"{self.description} (ID {self.id}, {pretty_size(self.length_bytes, False)})"
+        return f"{self.description} [ID {self.id}, {pretty_size(self.length_bytes, False)}]"
 
     def __str__(self) -> str:
         return (
@@ -134,8 +134,8 @@ class PartitionTable:
     @staticmethod
     def partlist_header() -> str:
         return (
-            "ID : Slot     Start       (bytes)  End         (bytes)  "
-            "Length      (bytes)  Description"
+            "ID : Slot           Start (bytes)          End (bytes)  "
+            "     Length (bytes)  Description"
         )
 
     @cache
