@@ -8,6 +8,7 @@ files:
   - path: C:\Users\*\Desktop
     tools:
       - "echo 'Test dir: $FILE'"
+      - "echo 'Test partition: $PARTITION'"
       - cmd: tree -a $FILE
         output: $OUTDIR/out/tree1.txt
       - name: test_enabled_yes

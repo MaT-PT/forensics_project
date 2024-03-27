@@ -41,23 +41,41 @@ def check_required_tools() -> None:
 
 
 @overload
-def run_program(name: str, args: list[str], logger: Logger, encoding: None = None) -> bytes: ...
+def run_program(
+    name: str, args: list[str], logger: Logger, encoding: None = ..., can_fail: bool = ...
+) -> bytes: ...
+
+
 @overload
-def run_program(name: str, args: list[str], logger: Logger, encoding: str) -> str: ...
+def run_program(
+    name: str, args: list[str], logger: Logger, encoding: str, can_fail: bool = ...
+) -> str: ...
 
 
 def run_program(
-    name: str, args: list[str], logger: Logger, encoding: str | None = None
+    name: str,
+    args: list[str],
+    logger: Logger,
+    encoding: str | None = None,
+    can_fail: bool = False,
+    silent_stderr: bool = False,
 ) -> str | bytes:
     try:
         logger.debug(f"Running {name} {' '.join(args)}")
         exec_path = get_program_path(name)
-        res = subprocess.check_output([exec_path] + args, encoding=encoding)
+        res = subprocess.check_output(
+            [exec_path] + args,
+            encoding=encoding,
+            stderr=subprocess.DEVNULL if silent_stderr else None,
+        )
         if isinstance(res, bytes):
             logger.debug(f"{name} returned {len(res)} bytes")
         else:
             logger.debug(f"{name} returned: {res}")
         return res
     except subprocess.CalledProcessError as e:
+        if can_fail:
+            logger.debug(f"{name} failed: {e}")
+            raise ChildProcessError(str(e))
         logger.critical(f"Error running {name}: {e}")
         exit(e.returncode)

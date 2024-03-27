@@ -61,13 +61,24 @@ class Partition:
     def is_filesystem(self) -> bool:
         return self.slot.replace(":", "").isdecimal()
 
+    @cached_property
+    def is_ntfs(self) -> bool:
+        try:
+            return "$MFT" in self.root_entries(can_fail=True)
+        except ChildProcessError:
+            return False
+
     @cache
-    def root_entries(self, case_insensitive: bool = True) -> fls_types.FsEntryList:
-        return fls_wrapper.fls(self, case_insensitive=case_insensitive)
+    def root_entries(
+        self, case_insensitive: bool = True, can_fail: bool = False
+    ) -> fls_types.FsEntryList:
+        return fls_wrapper.fls(
+            self, case_insensitive=case_insensitive, can_fail=can_fail, silent_stderr=can_fail
+        )
 
     @cache
     def short_desc(self) -> str:
-        return f"{self.description} (ID {self.id}, {pretty_size(self.length_bytes, False)})"
+        return f"{self.description} [ID {self.id}, {pretty_size(self.length_bytes, False)}]"
 
     def __str__(self) -> str:
         return (
@@ -123,8 +134,8 @@ class PartitionTable:
     @staticmethod
     def partlist_header() -> str:
         return (
-            "ID : Slot     Start       (bytes)  End         (bytes)  "
-            "Length      (bytes)  Description"
+            "ID : Slot           Start (bytes)          End (bytes)  "
+            "     Length (bytes)  Description"
         )
 
     @cache

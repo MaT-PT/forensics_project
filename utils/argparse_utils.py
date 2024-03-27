@@ -15,11 +15,12 @@ class Arguments:
     imgtype: ImgType | None
     sector_size: int | None
     offset: Sectors | None
+    part_num: list[int] | None
+    ask_part: bool
     ls: bool
-    part_num: int | None
+    save_all: bool
     file: list[str] | None
     file_list: list[str] | None
-    save_all: bool
     out_dir: str | None
     case_sensitive: bool
     silent: bool
@@ -120,11 +121,20 @@ def parse_args() -> Arguments:
         type=int_min(0),
         help="Offset to the start of the volume that contains the partition system (in sectors)",
     )
-    parser.add_argument(
+    xgrp_partition = parser.add_mutually_exclusive_group()
+    xgrp_partition.add_argument(
         "-p",
         "--part-num",
+        action="extend",
+        nargs="+",
         type=int_min(0),
-        help="The partition number (slot) to use",
+        help="The partition number(s) (slots) to use (if not specified, use all NTFS partitions)",
+    )
+    xgrp_partition.add_argument(
+        "-P",
+        "--ask-part",
+        action="store_true",
+        help="List data partitions and ask for which one(s) to use",
     )
     xgrp_list_save = parser.add_mutually_exclusive_group()
     xgrp_list_save.add_argument(
@@ -132,7 +142,7 @@ def parse_args() -> Arguments:
         "--list",
         action="store_true",
         dest="ls",
-        help="If no file is specified, list the partitions; otherwise, list the given files",
+        help="If no file is specified, list all partitions; otherwise, list the given files",
     )
     xgrp_list_save.add_argument(
         "-a",
@@ -152,7 +162,7 @@ def parse_args() -> Arguments:
         "--file-list",
         action="extend",
         nargs="+",
-        help="YAML file(s) containing the file(s)/dir(s) to extract",
+        help="YAML file(s) containing the file(s)/dir(s) to extract, with tools to use and options",
     )
     parser.add_argument(
         "-d",
@@ -184,5 +194,9 @@ def parse_args() -> Arguments:
 
     if args.save_all and (args.file or args.file_list):
         parser.error("cannot specify --save-all and --file/--file-list at the same time")
+
+    if args.part_num is not None:
+        # Remove duplicates while preserving order
+        args.part_num = list(dict.fromkeys(args.part_num).keys())
 
     return Arguments(**args.__dict__)
