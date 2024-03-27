@@ -396,6 +396,13 @@ class FileList:
         indices = {path: i for i, path in enumerate(sorted_files)}
         self.files.sort(key=lambda file: indices[file.path])
 
+    def reset_tools(self) -> None:
+        """Reset the `has_run` flag for all tools"""
+        LOGGER.debug("Resetting tools 'has_run' status...")
+        for file in self.files:
+            for tool in file.tools:
+                tool._has_run.reset()
+
     def append(self, file: File | str) -> None:
         """Append a File to the list"""
         self.files.append(FileList.File.from_file_or_str(file, self))

@@ -87,6 +87,7 @@ def process_partition(
         root_entries.save_all(base_path=out_dir)
         return
 
+    file_list.reset_tools()
     process_files(file_list, root_entries, args, out_dir, extra_vars={"PARTITION": str(part_num)})
 
 
