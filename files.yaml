@@ -79,12 +79,12 @@ files:
         extra:
           all: on
         output:
-          path: $OUTDIR/_regripper/all_security.txt
+          path: $OUTDIR/_regripper/all_default.txt
       - name: regripper
         extra:
           all_tln: on
         output:
-          path: $OUTDIR/_regripper/all_security_tln.txt
+          path: $OUTDIR/_regripper/all_default_tln.txt
 
   - Windows/System32/config/DEFAULT.LOG*
 
