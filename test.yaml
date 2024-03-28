@@ -4,11 +4,14 @@ files:
       cmd: "echo 'Test file: $FILE'; echo 'Test STDERR' >&2; ls -l '$OUTDIR/$MFT'"
       requires:
         - C:\$MFT
-  - $MFT
+  - path: $MFT
+    tool:
+      cmd: "echo 'Test USERNAME: $FILE - $USERNAME'"
   - path: Users/*/Desktop/*
     tools:
       - cmd: "echo 'Test filter: $FILE'"
         filter: "*.ini"
+      - cmd: "echo 'Test USERNAME: $FILE - $USERNAME'"
   - path: C:\Users\*\Desktop
     tools:
       - "echo 'Test dir: $FILE'"
