@@ -8,6 +8,8 @@ from typing import Any, TypedDict, get_type_hints
 
 import yaml
 
+from .colored_logging import print_error
+
 if sys.version_info >= (3, 11):
     from typing import NotRequired, Self
 else:
@@ -133,8 +135,12 @@ class Config:
     @classmethod
     def from_yaml_file(cls, yaml_file: str | Path) -> Self:
         """Parse a YAML file and return a list of tools and directories"""
-        with open(yaml_file, "r") as file:
-            data: Config.YamlConfig | Any = yaml.safe_load(file)
+        try:
+            with open(yaml_file, "r") as file:
+                data: Config.YamlConfig | Any = yaml.safe_load(file)
+        except FileNotFoundError:
+            print_error(f"Config file '{yaml_file}' not found")
+            sys.exit(1)
         return cls.from_dict(data)
 
     def get_tool(self, name: str) -> Tool:

@@ -23,7 +23,6 @@ logging.basicConfig(
 )
 
 SCRIPT_DIR = Path(__file__ if "__file__" in globals() else sys.argv[0]).parent
-CONFIG_FILE = SCRIPT_DIR / "config.yaml"
 
 
 def process_files(
@@ -129,7 +128,7 @@ def main() -> None:
         print_error(str(e))
         exit(1)
 
-    config = Config.from_yaml_file(CONFIG_FILE)
+    config = Config.from_yaml_file(args.config if args.config else SCRIPT_DIR / "config.yaml")
     file_list = FileList.empty(config)
     if args.file is not None:
         file_list.extend(args.file)

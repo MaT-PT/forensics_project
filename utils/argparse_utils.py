@@ -22,6 +22,7 @@ class Arguments:
     file: list[str] | None
     file_list: list[str] | None
     out_dir: str | None
+    config: str | None
     case_sensitive: bool
     silent: bool
     verbose: int
@@ -168,6 +169,11 @@ def parse_args() -> Arguments:
         "-d",
         "--out-dir",
         help="The directory to extract the file(s)/dir(s) to",
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        help="The YAML file containing the configuration of the tools to use and directories",
     )
     parser.add_argument(
         "-S",

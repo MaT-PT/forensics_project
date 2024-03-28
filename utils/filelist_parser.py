@@ -10,6 +10,7 @@ from typing import Any, Iterable, Iterator, TypedDict, overload
 
 import yaml
 
+from .colored_logging import print_error
 from .config_parser import Config
 from .variable_utils import get_username, sub_vars
 
@@ -346,8 +347,12 @@ class FileList:
     @classmethod
     def from_yaml_file(cls, yaml_file: str | Path, config: Config) -> Self:
         """Parse a YAML file and return a list of files/directories to extract"""
-        with open(yaml_file, "r") as file:
-            data: FileList.YamlFiles | Any = yaml.safe_load(file)
+        try:
+            with open(yaml_file, "r") as file:
+                data: FileList.YamlFiles | Any = yaml.safe_load(file)
+        except FileNotFoundError:
+            print_error(f"File '{yaml_file}' not found")
+            sys.exit(1)
         return cls.from_dict(data, config)
 
     @classmethod
