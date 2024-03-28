@@ -106,8 +106,7 @@ def choose_partitions(partitions: list[Partition]) -> list[int]:
         else:
             return [int(num) for num in user_input.replace(",", " ").split()]
     except ValueError:
-        print_error("Invalid partition number")
-        exit(1)
+        print_error("Invalid partition number", exit_code=1)
 
 
 def main() -> None:
@@ -125,8 +124,7 @@ def main() -> None:
     try:
         check_required_tools()
     except FileNotFoundError as e:
-        print_error(str(e))
-        exit(1)
+        print_error(str(e), exit_code=1)
 
     config = Config.from_yaml_file(args.config if args.config else SCRIPT_DIR / "config.yaml")
     file_list = FileList.empty(config)
@@ -167,9 +165,9 @@ def main() -> None:
             valid += f"-{len(partitions) - 1}"
         print_error(
             f"Invalid partition number(s): {', '.join(str(part_num) for part_num in part_nums)} "
-            f"(valid: {colored(valid, attrs=['bold'])})"
+            f"(valid: {colored(valid, attrs=['bold'])})",
+            exit_code=1,
         )
-        exit(1)
 
     if not args.silent:
         print_info("Selected partition(s):")

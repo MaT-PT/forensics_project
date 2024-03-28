@@ -1,6 +1,7 @@
 import shutil
 import subprocess
 from logging import Logger
+from sys import exit
 from typing import overload
 
 SIZE_UNITS = ["B", "K", "M", "G", "T", "P"]

@@ -139,8 +139,7 @@ class Config:
             with open(yaml_file, "r") as file:
                 data: Config.YamlConfig | Any = yaml.safe_load(file)
         except FileNotFoundError:
-            print_error(f"Config file '{yaml_file}' not found")
-            sys.exit(1)
+            print_error(f"Config file '{yaml_file}' not found", exit_code=1)
         return cls.from_dict(data)
 
     def get_tool(self, name: str) -> Tool:

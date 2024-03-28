@@ -351,8 +351,7 @@ class FileList:
             with open(yaml_file, "r") as file:
                 data: FileList.YamlFiles | Any = yaml.safe_load(file)
         except FileNotFoundError:
-            print_error(f"File '{yaml_file}' not found")
-            sys.exit(1)
+            print_error(f"File '{yaml_file}' not found", exit_code=1)
         return cls.from_dict(data, config)
 
     @classmethod

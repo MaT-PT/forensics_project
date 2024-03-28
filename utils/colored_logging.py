@@ -1,5 +1,6 @@
 import logging
-from typing import Any
+from sys import exit
+from typing import Any, NoReturn, overload
 
 from colorama import just_fix_windows_console
 from termcolor import colored
@@ -25,6 +26,8 @@ def init_logging_colors() -> None:
 
 def print_log(
     msg: str,
+    /,
+    *,
     prefix_char: str = "*",
     color: Color = "cyan",
     attrs: list[Attribute] = [],
@@ -33,13 +36,21 @@ def print_log(
     print(f"[{colored(prefix_char, color, attrs=attrs)}] {msg}", **kwargs)
 
 
-def print_info(msg: str, **kwargs: Any) -> None:
+def print_info(msg: str, /, **kwargs: Any) -> None:
     print_log(msg, prefix_char="*", color="cyan", **kwargs)
 
 
-def print_warning(msg: str, **kwargs: Any) -> None:
+def print_warning(msg: str, /, **kwargs: Any) -> None:
     print_log(f"Warning: {msg}", prefix_char="!", color="yellow", **kwargs)
 
 
-def print_error(msg: str, **kwargs: Any) -> None:
+@overload
+def print_error(msg: str, /, *, exit_code: int, **kwargs: Any) -> NoReturn: ...
+@overload
+def print_error(msg: str, /, *, exit_code: None = ..., **kwargs: Any) -> None: ...
+
+
+def print_error(msg: str, /, *, exit_code: int | None = None, **kwargs: Any) -> None:
     print_log(f"Error: {msg}", prefix_char="!", color="red", **kwargs)
+    if exit_code is not None:
+        exit(exit_code)
