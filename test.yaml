@@ -5,6 +5,10 @@ files:
       requires:
         - C:\$MFT
   - $MFT
+  - path: Users/*/Desktop/*
+    tools:
+      - cmd: "echo 'Test filter: $FILE'"
+        filter: "*.ini"
   - path: C:\Users\*\Desktop
     tools:
       - "echo 'Test dir: $FILE'"

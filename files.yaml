@@ -79,12 +79,12 @@ files:
         extra:
           all: on
         output:
-          path: $OUTDIR/_regripper/all_security.txt
+          path: $OUTDIR/_regripper/all_default.txt
       - name: regripper
         extra:
           all_tln: on
         output:
-          path: $OUTDIR/_regripper/all_security_tln.txt
+          path: $OUTDIR/_regripper/all_default_tln.txt
 
   - Windows/System32/config/DEFAULT.LOG*
 
@@ -300,6 +300,7 @@ files:
       - name: mkdir
         extra:
           dir: $OUTDIR/_srum_dump
+        run_once: yes
       - name: srum_dump
         extra:
           reg_hive: $OUTDIR/Windows/System32/config/SOFTWARE
@@ -308,8 +309,19 @@ files:
         requires:
           - Windows/System32/config/SOFTWARE
 
+  - path: Windows/System32/winevt/Logs/*
+    tools:
+      - name: mkdir
+        extra:
+          dir: $OUTDIR/_evtx_dump
+        run_once: yes
+      - name: evtx_dump
+        extra:
+          format: xml
+          output: $OUTDIR/_evtx_dump/$FILENAME.xml
+        filter: "*.evtx"
+
   - Windows/INF/setupapi.dev.log
-  - Windows/System32/winevt/Logs/*
   - Windows/System32/LogFiles/*
   - Windows/Tasks/*
   - Windows/System32/drivers/etc/hosts
