@@ -56,10 +56,10 @@ def process_files(
                 path, _ = entry.save_file(base_path=out_dir, parents=True)
             for tool in file.tools:
                 if not args.silent:
-                    print_info(f"Running {tool}")
-                ret = tool.run(path, out_dir, extra_vars=extra_vars, silent=args.silent)
+                    print_info(f"Running {tool}...")
+                ret = tool.run(path, out_dir, entry.path, extra_vars=extra_vars, silent=args.silent)
                 if not args.silent and ret is None:
-                    print_warning("Tool did not run (disabled or run_once)")
+                    print_info("Tool did not run (disabled, filter mismatch, or run_once)")
                 if not (ret is None or args.silent or tool.output):
                     print()  # Add an empty line after each tool that ran
 

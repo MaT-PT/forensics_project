@@ -6,7 +6,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from graphlib import TopologicalSorter
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any, Iterable, Iterator, Protocol, TypedDict, overload
 
 import yaml
@@ -44,6 +44,14 @@ class MutableBool:
 
     def reset(self) -> None:
         self.value = False
+
+    def __hash__(self) -> int:
+        return hash(self.value)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, MutableBool):
+            return self.value == other.value
+        return self.value == other
 
 
 def sub_vars_loop(s: str, var_dict: dict[str, str], upper: bool = True, max_iter: int = 10) -> str:
@@ -112,6 +120,7 @@ class FileList:
         name: NotRequired[str]
         cmd: NotRequired[str]
         extra: NotRequired[dict[str, Any]]
+        filter: NotRequired[str]
         output: NotRequired[str | FileList.YamlFilesOutput]
         requires: NotRequired[list[str]]
         allow_fail: NotRequired[bool]
@@ -131,6 +140,7 @@ class FileList:
         cmd: str | None = None
         name: str | None = None
         extra: dict[str, Any] = field(default_factory=dict)
+        filter: str | None = None
         output: Output | None = None
         requires: frozenset[str] = field(default_factory=frozenset)
         allow_fail: bool | None = None
@@ -171,6 +181,7 @@ class FileList:
                 file=file,
                 cmd=cmd,
                 extra=data.get("extra", {}),
+                filter=data.get("filter"),
                 output=None if output is None else cls.Output.from_dict(output),
                 requires=frozenset(file.normalize_path(req) for req in data.get("requires", [])),
                 allow_fail=data.get("allow_fail"),
@@ -199,6 +210,13 @@ class FileList:
                 "OUTDIR": str(out_dir),
                 "PARENT": str(file_path.parent),
             }
+            if "ENTRYPATH" not in var_dict:
+                if file_path.is_relative_to(out_dir):
+                    var_dict["ENTRYPATH"] = str(file_path.relative_to(out_dir))
+                else:
+                    var_dict["ENTRYPATH"] = str(file_path)
+            if "FILENAME" not in var_dict:
+                var_dict["FILENAME"] = file_path.name
             cmd: str | None
             if self.name is not None:
                 tool = config.get_tool(self.name)
@@ -226,10 +244,23 @@ class FileList:
             self,
             file_path: str | Path | None = None,
             out_dir: str | Path | None = ".",
+            entry_path: str | PurePath | None = None,
             extra_vars: dict[str, str] = {},
             extra_args: str | None = None,
             silent: bool = False,
         ) -> int | None:
+            if entry_path is not None:
+                if isinstance(entry_path, str):
+                    entry_path = PurePath(entry_path)
+                if self.filter is not None and not entry_path.match(self.filter):
+                    LOGGER.info(
+                        f"Skipping tool for file '{entry_path}' (filter mismatch: {self.filter})"
+                    )
+                    return None
+                extra_vars = extra_vars | {
+                    "ENTRYPATH": str(entry_path),
+                    "FILENAME": entry_path.name,
+                }
             if out_dir is None:
                 out_dir = Path(".")
             elif isinstance(out_dir, str):
@@ -243,7 +274,7 @@ class FileList:
                 return None
 
             if self.run_once:
-                if self._has_run:
+                if self.has_run:
                     LOGGER.info("Tool already ran once, skipping...")
                     return None
                 self._has_run.set()
@@ -292,6 +323,10 @@ class FileList:
             else:
                 LOGGER.warning(f"Command failed (returned {ret})")
             return ret
+
+        @property
+        def has_run(self) -> bool:
+            return bool(self._has_run)
 
         def __str__(self) -> str:
             if self.name:
