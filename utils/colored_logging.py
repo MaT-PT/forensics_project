@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from colorama import just_fix_windows_console
 from termcolor import colored
 
 from .termcolor_types import Attribute, Color
@@ -15,6 +16,8 @@ LOGLEVEL_COLORS: dict[int, tuple[Color, list[Attribute]]] = {
 
 
 def init_logging_colors() -> None:
+    just_fix_windows_console()
+
     for level, (color, attrs) in LOGLEVEL_COLORS.items():
         name: str = logging.getLevelName(level)
         logging.addLevelName(level, colored(name, color, attrs=attrs))

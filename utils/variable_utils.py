@@ -36,24 +36,21 @@ def sub_vars_loop(s: str, var_dict: dict[str, str], upper: bool = True, max_iter
 def sub_funcs(s: str, upper: bool = True) -> str:
     """Run functions of the form of `${func_name:arg1,arg2,...}`"""
     while True:
-        start = s.find("${")
-        if start == -1:
+        if (start := s.find("${")) == -1:
             break
-        end = s.find("}", start)
-        if end == -1:
+        if (end := s.find("}", start)) == -1:
             LOGGER.warning(f"Unterminated function call: {s[start:]}")
             break
-        func = s[start + 2 : end]
-        LOGGER.debug(f"Found function: {func}")
-        if ":" not in func:
+        if ":" not in (func := s[start + 2 : end]):
             LOGGER.warning(f"Invalid function syntax: {func}")
             break
+        LOGGER.debug(f"Found function: {func}")
         func_name, args_str = func.split(":")
         if func_name not in VAR_FUNCTIONS:
             LOGGER.warning(f"Unknown function: {func_name}")
-        args = args_str.split(",")
         if upper:
             func_name = func_name.upper()
+        args = args_str.split(",")
         LOGGER.debug(f"Calling function: {func_name}({args})")
         s = s[:start] + VAR_FUNCTIONS[func_name](*args) + s[end + 1 :]
     return s
@@ -66,9 +63,7 @@ def sub_vars(s: str, var_dict: dict[str, str], upper: bool = True, max_iter: int
         var_dict["TIME"] = datetime.now().strftime("%H.%M.%S")
     if "DATE" not in var_dict:
         var_dict["DATE"] = datetime.now().strftime("%Y-%m-%d")
-    res = sub_vars_loop(s, var_dict, upper, max_iter)
-    res = sub_funcs(res)
-    return res
+    return sub_funcs(sub_vars_loop(s, var_dict, upper, max_iter))
 
 
 def get_username(path: str | PurePath) -> str | None:

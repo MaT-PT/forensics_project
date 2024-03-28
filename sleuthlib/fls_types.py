@@ -42,8 +42,7 @@ class FsEntry:
         parent: FsEntry | None = None,
         case_insensitive: bool | None = None,
     ) -> Self:
-        m = FsEntry.RE_ENTRY.match(s)
-        if m is None:
+        if (m := FsEntry.RE_ENTRY.match(s)) is None:
             raise ValueError(f"Invalid fs entry string: {s}")
         LOGGER.debug(f"Creating FsEntry from string: {s}")
         type_filename = FsEntryType(m.group(1))
@@ -196,32 +195,31 @@ class FsEntry:
         LOGGER.info(f"Saving file '{self.path}' to '{filepath}'")
         try:
             data = self.dump_file()
-            res = file.write(data)
-            LOGGER.info(f"Written {res} bytes to '{filepath}'")
-            return filepath, res
+            count = file.write(data)
+            LOGGER.info(f"Written {count} bytes to '{filepath}'")
+            return filepath, count
         finally:
             if must_close:
                 file.close()
 
-    def short_desc(self) -> str:
+    @cached_property
+    def attributes(self) -> str:
         attribs: list[str] = []
         if self.is_deleted:
             attribs.append("deleted")
         if self.is_reallocated:
             attribs.append("reallocated")
-        attribs_str = f" ({', '.join(attribs)})" if attribs else ""
-        return f"{self.type_filename.value}/{self.type_metadata.value}: {self.path}{attribs_str}"
+        return f" ({', '.join(attribs)})" if attribs else ""
+
+    def short_desc(self) -> str:
+        return (
+            f"{self.type_filename.value}/{self.type_metadata.value}: {self.path}{self.attributes}"
+        )
 
     def __str__(self) -> str:
-        attribs: list[str] = []
-        if self.is_deleted:
-            attribs.append("deleted")
-        if self.is_reallocated:
-            attribs.append("reallocated")
-        attribs_str = f" ({', '.join(attribs)})" if attribs else ""
         return (
             f"{self.type_filename.value}/{self.type_metadata.value} "
-            f"{self.meta_address.address}: {self.name}{attribs_str} ({self.path})"
+            f"{self.meta_address.address}: {self.name}{self.attributes} ({self.path})"
         )
 
 
@@ -231,16 +229,14 @@ class FsEntryList:
 
     @cache
     def find_entry(self, name: str) -> FsEntry:
-        res = next((f for f in self.entries if f.name_eq(name)), None)
-        if res is None:
+        if (entry := next((f for f in self.entries if f.name_eq(name)), None)) is None:
             raise IndexError(f"No entry found with name '{name}'")
-        LOGGER.debug(f"Found entry: '{res}'")
-        return res
+        LOGGER.debug(f"Found entry: '{entry}'")
+        return entry
 
     @cache
     def find_entries(self, name: str) -> FsEntryList:
-        entries = [ent for ent in self.entries if ent.name_matches(name)]
-        if entries:
+        if entries := [ent for ent in self.entries if ent.name_matches(name)]:
             LOGGER.debug(f"Found entries: {', '.join(str(entry.path) for entry in entries)}")
         else:
             LOGGER.debug(f"No entries found with name matching '{name}'")
@@ -304,8 +300,7 @@ class FsEntryList:
     def __getitem__(self, item: int | slice | str) -> FsEntry | FsEntryList:
         if isinstance(item, str):
             return self.find_entries(item)
-        res = self.entries[item]
-        if isinstance(res, list):
+        if isinstance(res := self.entries[item], list):
             return FsEntryList(res)
         return res
 

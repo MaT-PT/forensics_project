@@ -209,8 +209,7 @@ class FileList:
             elif isinstance(file_path, str):
                 file_path = Path(file_path)
 
-            cmd = self.get_command(file_path, out_dir, extra_vars, extra_args)
-            if cmd is None:
+            if (cmd := self.get_command(file_path, out_dir, extra_vars, extra_args)) is None:
                 return None
 
             if self.run_once:
@@ -257,9 +256,8 @@ class FileList:
                 proc_res = subprocess.run(cmd, shell=True, check=check, stdout=subprocess.DEVNULL)
             else:
                 proc_res = subprocess.run(cmd, shell=True, check=check)
-            ret = proc_res.returncode
-            if ret == 0:
-                LOGGER.info(f"Command succeeded (returned {ret})")
+            if (ret := proc_res.returncode) == 0:
+                LOGGER.info("Command succeeded")
             else:
                 LOGGER.warning(f"Command failed (returned {ret})")
             return ret
@@ -306,18 +304,18 @@ class FileList:
                 return cls.from_str(data, file_list)
             if not (isinstance(data, dict) and "path" in data):
                 raise KeyError("Missing 'path' key")
-            res = cls.from_str(data["path"], file_list)
+            file = cls.from_str(data["path"], file_list)
             if "tool" in data:
                 if isinstance(data["tool"], dict):
-                    res.tools.append(FileList.Tool.from_dict(data["tool"], res))
+                    file.tools.append(FileList.Tool.from_dict(data["tool"], file))
                 else:
                     raise TypeError("Invalid 'tool' key (must be a dict)")
             if "tools" in data:
                 if isinstance(data["tools"], list):
-                    res.tools.extend(FileList.Tool.from_dict(tool, res) for tool in data["tools"])
+                    file.tools.extend(FileList.Tool.from_dict(tool, file) for tool in data["tools"])
                 else:
                     raise TypeError("Invalid 'tools' key (must be a list)")
-            return res
+            return file
 
         @classmethod
         def from_file_or_str(cls, file: Self | str, file_list: FileList) -> Self:
@@ -339,8 +337,7 @@ class FileList:
     def from_dict(cls, data: YamlFiles | Any, config: Config) -> Self:
         if not (isinstance(data, dict) and "files" in data):
             raise KeyError("Missing 'files' key")
-        files = data["files"]
-        if not isinstance(files, list):
+        if not isinstance(files := data["files"], list):
             raise TypeError("'files' must be a list")
         file_list = cls(files=[], config=config)
         file_list.extend(FileList.File.from_dict(file, file_list) for file in files)
@@ -415,8 +412,7 @@ class FileList:
     def __getitem__(self, item: slice) -> Self: ...
 
     def __getitem__(self, item: int | slice) -> File | Self:
-        res = self.files[item]
-        if isinstance(res, list):
+        if isinstance(res := self.files[item], list):
             return self.__class__(files=res, config=self.config)
         return res
 

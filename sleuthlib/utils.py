@@ -29,10 +29,9 @@ def set_tsk_path(path: str | None) -> None:
 
 
 def get_program_path(name: str) -> str:
-    res = shutil.which(name, path=TSK_PATH)
-    if res is None:
+    if (path := shutil.which(name, path=TSK_PATH)) is None:
         raise FileNotFoundError(f"{name} not found in {'PATH' if TSK_PATH is None else TSK_PATH}")
-    return res
+    return path
 
 
 def check_required_tools() -> None:

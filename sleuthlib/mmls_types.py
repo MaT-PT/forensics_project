@@ -33,8 +33,7 @@ class Partition:
 
     @classmethod
     def from_str(cls, s: str, partition_table: PartitionTable) -> Self:
-        m = Partition.RE_PARTITION.match(s)
-        if m is None:
+        if (m := Partition.RE_PARTITION.match(s)) is None:
             raise ValueError(f"Invalid partition string: {s}")
         LOGGER.debug(f"Creating Partition from string: {s}")
         id = int(m.group(1))
@@ -107,12 +106,10 @@ class PartitionTable:
     def from_str(cls, s: str, image_files: Iterable[str], imgtype: ImgType | None = None) -> Self:
         lines = s.splitlines()
         part_table_type = PartTableType.from_str(lines.pop(0))
-        m = PartitionTable.RE_OFFSET.match(lines.pop(0))
-        if m is None:
+        if (m := PartitionTable.RE_OFFSET.match(lines.pop(0))) is None:
             raise ValueError("Could not find partition table offset")
         offset = Sectors(int(m.group(1)))
-        m = PartitionTable.RE_SECTOR_SIZE.match(lines.pop(0))
-        if m is None:
+        if (m := PartitionTable.RE_SECTOR_SIZE.match(lines.pop(0))) is None:
             raise ValueError("Could not find sector size")
         sector_size = int(m.group(1))
         part_table = cls(tuple(image_files), part_table_type, [], offset, sector_size, imgtype)

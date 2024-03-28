@@ -4,7 +4,6 @@ import logging
 import sys
 from pathlib import Path
 
-from colorama import just_fix_windows_console
 from termcolor import colored, cprint
 
 from sleuthlib import check_required_tools, mmls, set_tsk_path
@@ -15,8 +14,6 @@ from utils.colored_logging import init_logging_colors, print_error, print_info, 
 from utils.config_parser import Config
 from utils.filelist_parser import FileList
 
-just_fix_windows_console()
-
 logging.basicConfig(
     level=logging.WARNING,
     format=f"[%(asctime)s] %(levelname)s ({colored('%(name)s', 'grey', attrs=['bold'])}) "
@@ -24,7 +21,6 @@ logging.basicConfig(
     # datefmt=f"%Y-%m-%d {colored('%H:%M:%S', attrs=['bold'])}",
     datefmt=f"{colored('%H:%M:%S', attrs=['bold'])}",
 )
-init_logging_colors()
 
 SCRIPT_DIR = Path(__file__ if "__file__" in globals() else sys.argv[0]).parent
 CONFIG_FILE = SCRIPT_DIR / "config.yaml"
@@ -116,6 +112,7 @@ def choose_partitions(partitions: list[Partition]) -> list[int]:
 
 
 def main() -> None:
+    init_logging_colors()
     args = parse_args()
 
     if args.verbose > 1:
