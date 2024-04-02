@@ -59,7 +59,7 @@ tools:
   - name: evtx_dump
     cmd:
       windows: '"${PATH:$DIR_EVTX_DUMP/evtx_dump.exe}"'
-      linux: '"$DIR_EVTX_DUMP/evtx_dump"'
+      linux: evtx_dump
     args: '"$FILE"'
     args_extra:
       format: --format $FORMAT
