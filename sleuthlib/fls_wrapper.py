@@ -11,6 +11,14 @@ LOGGER = logging.getLogger(__name__)
 def fls(
     partition: Partition, root: FsEntry | None = None, case_insensitive: bool = False, **kwargs: Any
 ) -> FsEntryList:
+    """Runs the `fls` tool to list files in a partition.
+
+    Args:
+        partition: The partition to list files from.
+        root: The root entry to list files from.
+        case_insensitive: Whether to use case-insensitive matching (for FAT/NFTS partitions)
+        **kwargs: Additional arguments to pass to `run_program`.
+    """
     args: list[str] = []
     # args += ["-p"]  # Show full path
     args += ["-o", str(partition.start)]  # Image offset

@@ -8,9 +8,16 @@ SIZE_UNITS = ["B", "K", "M", "G", "T", "P"]
 REQUIRED_TOOLS = ["mmls", "fls", "icat"]
 
 TSK_PATH: str | None = None
+"""The path to The Sleuth Kit tools."""
 
 
 def pretty_size(size: int, compact: bool = True) -> str:
+    """Converts a size in bytes to a human-readable string.
+
+    Args:
+        size: The size in bytes.
+        compact: Whether to use compact notation (e.g. "8K" instead of "8 KB").
+    """
     if compact:
         units = SIZE_UNITS
     else:
@@ -25,17 +32,22 @@ def pretty_size(size: int, compact: bool = True) -> str:
 
 
 def set_tsk_path(path: str | None) -> None:
+    """Sets the path to The Sleuth Kit tools."""
     global TSK_PATH
     TSK_PATH = path
 
 
 def get_program_path(name: str) -> str:
+    """Returns the path to the given program, or raises an exception if it's not found.
+    Searches in the PATH environment variable or in the TSK_PATH directory, if set."""
     if (path := shutil.which(name, path=TSK_PATH)) is None:
         raise FileNotFoundError(f"{name} not found in {'PATH' if TSK_PATH is None else TSK_PATH}")
     return path
 
 
 def check_required_tools() -> None:
+    """Checks if the required tools are available in TSK_PATH or PATH
+    (required tools are `mmls`, `fls`, and `icat`)."""
     for tool in REQUIRED_TOOLS:
         get_program_path(tool)
 
@@ -60,6 +72,16 @@ def run_program(
     can_fail: bool = False,
     silent_stderr: bool = False,
 ) -> str | bytes:
+    """Runs a program with the given arguments. Executable is searched in TSK_PATH or PATH.
+
+    Args:
+        name: The name of the program.
+        args: The arguments to pass to the program.
+        logger: The logger to use.
+        encoding: The encoding to use for the output (if None, returns raw bytes).
+        can_fail: Whether the program can fail without raising an exception.
+        silent_stderr: Whether to suppress stderr output.
+    """
     try:
         logger.debug(f"Running {name} {' '.join(args)}")
         exec_path = get_program_path(name)

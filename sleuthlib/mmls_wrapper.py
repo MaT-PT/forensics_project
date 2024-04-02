@@ -16,6 +16,16 @@ def mmls(
     offset: int | None = None,
     **kwargs: Any,
 ) -> PartitionTable:
+    """Runs the `mmls` tool to extract partition information from an image.
+
+    Args:
+        image_files: Path to the image file(s).
+        vstype: Volume system type to use (`dos`, `mac`, `bsd`, `sun`, or `gpt`).
+        imgtype: Image type to use (`raw`, `aff`, `afd`, `afm`, `afflib`, `ewf`, `vmdk`, or `vhd`).
+        sector_size: Sector size to use.
+        offset: Offset to use for the start of the volume.
+        **kwargs: Additional arguments to pass to `run_program`.
+    """
     args: list[str] = []
     if vstype is not None:
         args += ["-t", vstype]
