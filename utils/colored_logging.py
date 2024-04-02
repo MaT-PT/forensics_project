@@ -1,11 +1,10 @@
 import logging
-from sys import exit
+from os import environ
+from sys import exit, platform
 from typing import Any, NoReturn, overload
 
-from colorama import just_fix_windows_console
 from termcolor import colored
-
-from .termcolor_types import Attribute, Color
+from termcolor._types import Attribute, Color
 
 LOGLEVEL_COLORS: dict[int, tuple[Color, list[Attribute]]] = {
     logging.DEBUG: ("white", []),
@@ -17,8 +16,17 @@ LOGLEVEL_COLORS: dict[int, tuple[Color, list[Attribute]]] = {
 
 
 def init_logging_colors() -> None:
-    """Initializes terminal colors with colorama and sets up logging levels with colors."""
-    just_fix_windows_console()
+    """Initializes terminal colors with colorama if necessary
+    and sets up logging levels with colors."""
+    if platform == "win32" and "WT_SESSION" not in environ:
+        try:
+            from colorama import just_fix_windows_console
+
+            just_fix_windows_console()
+        except ImportError:
+            environ["NO_COLOR"] = "1"
+            print_warning("Colorama not installed, colors will not work on Windows legacy console.")
+            print("    Consider installing it with 'pip install colorama'.")
 
     for level, (color, attrs) in LOGLEVEL_COLORS.items():
         name: str = logging.getLevelName(level)
