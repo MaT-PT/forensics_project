@@ -17,6 +17,7 @@ LOGLEVEL_COLORS: dict[int, tuple[Color, list[Attribute]]] = {
 
 
 def init_logging_colors() -> None:
+    """Initializes terminal colors with colorama and sets up logging levels with colors."""
     just_fix_windows_console()
 
     for level, (color, attrs) in LOGLEVEL_COLORS.items():

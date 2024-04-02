@@ -14,6 +14,8 @@ from utils.colored_logging import init_logging_colors, print_error, print_info, 
 from utils.config_parser import Config
 from utils.filelist_parser import FileList
 
+SCRIPT_DIR = Path(__file__ if "__file__" in globals() else sys.argv[0]).parent
+
 logging.basicConfig(
     level=logging.WARNING,
     format=f"[%(asctime)s] %(levelname)s ({colored('%(name)s', 'grey', attrs=['bold'])}) "
@@ -21,8 +23,6 @@ logging.basicConfig(
     # datefmt=f"%Y-%m-%d {colored('%H:%M:%S', attrs=['bold'])}",
     datefmt=f"{colored('%H:%M:%S', attrs=['bold'])}",
 )
-
-SCRIPT_DIR = Path(__file__ if "__file__" in globals() else sys.argv[0]).parent
 
 
 def process_files(
@@ -32,6 +32,15 @@ def process_files(
     out_dir: str | None = None,
     extra_vars: dict[str, str] = {},
 ) -> None:
+    """Extracts or lists files from the given list of files in the given root entries.
+
+    Args:
+        file_list: The list of files to extract or list.
+        root_entries: The root entries to search for the files in.
+        args: The parsed arguments from the CLI.
+        out_dir: The output directory.
+        extra_vars: Extra variables to pass to the tools.
+    """
     if out_dir is None:
         out_dir = args.out_dir
 
@@ -66,6 +75,15 @@ def process_partition(
     args: Arguments,
     out_dir: str | None = None,
 ) -> None:
+    """Processes the given partition.
+
+    Args:
+        partition: The partition to process.
+        part_num: The partition number in the image.
+        file_list: The list of files to extract or list.
+        args: The parsed arguments from the CLI.
+        out_dir: The output directory.
+    """
     if out_dir is None:
         out_dir = args.out_dir
 
@@ -87,6 +105,14 @@ def process_partition(
 
 
 def choose_partitions(partitions: list[Partition]) -> list[int]:
+    """Prompts the user to choose the partition(s) to use.
+
+    Args:
+        partitions: The list of partitions to choose from.
+
+    Returns:
+        The list of partition numbers chosen by the user.
+    """
     default_part = max(enumerate(partitions), key=lambda i_p: i_p[1].length)[0]
     print("Please select the partition number(s) to use:")
     print()
@@ -110,6 +136,8 @@ def choose_partitions(partitions: list[Partition]) -> list[int]:
 
 
 def main() -> None:
+    """The main function of the script.
+    Parses the arguments, processes the image, and extracts/lists the files."""
     init_logging_colors()
     args = parse_args()
 
