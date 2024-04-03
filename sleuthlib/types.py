@@ -1,16 +1,10 @@
 from __future__ import annotations
 
 import re
-import sys
 from dataclasses import dataclass
-from enum import StrEnum
+from enum import Enum
 from functools import cache, cached_property
-from typing import Literal, NewType
-
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
+from typing import Literal, NewType, TypeAlias
 
 PART_TABLE_TYPES = {
     "dos": "DOS Partition Table",
@@ -52,7 +46,7 @@ VsType: TypeAlias = Literal["dos", "mac", "bsd", "sun", "gpt"]
 ImgType: TypeAlias = Literal["raw", "aff", "afd", "afm", "afflib", "ewf", "vmdk", "vhd"]
 
 
-class PartTableType(StrEnum):
+class PartTableType(str, Enum):
     DOS = "dos"
     MAC = "mac"
     BSD = "bsd"
@@ -72,7 +66,7 @@ class PartTableType(StrEnum):
         return PART_TABLE_TYPES.get(self.value, "Unknown")
 
 
-class FsEntryType(StrEnum):
+class FsEntryType(str, Enum):
     UNKNOWN = "-"
     REGULAR = "r"
     DIRECTORY = "d"
