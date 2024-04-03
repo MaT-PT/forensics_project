@@ -18,8 +18,7 @@ SCRIPT_DIR = Path(__file__ if "__file__" in globals() else sys.argv[0]).parent
 
 logging.basicConfig(
     level=logging.WARNING,
-    format=f"[%(asctime)s] %(levelname)s ({colored('%(name)s', 'grey', attrs=['bold'])}) "
-    "%(message)s",
+    format=f"[%(asctime)s] %(levelname)s ({colored('%(name)s', 'dark_grey')}) %(message)s",
     # datefmt=f"%Y-%m-%d {colored('%H:%M:%S', attrs=['bold'])}",
     datefmt=f"{colored('%H:%M:%S', attrs=['bold'])}",
 )
