@@ -5,11 +5,11 @@ import re
 import sys
 from dataclasses import dataclass
 from functools import cache, cached_property
-from typing import Iterable
+from typing import Any, Iterable
 
-from . import fls_types, fls_wrapper
-from .types import ImgType, PartTableType, Sectors
-from .utils import pretty_size
+from . import fls_types
+from .types import ImgType, PartTableType, Sectors, VsType
+from .utils import pretty_size, run_program
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -29,11 +29,11 @@ class Partition:
     description: str
     partition_table: PartitionTable
 
-    RE_PARTITION = re.compile(r"^\s*(\d+):\s*(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(.+)$")
+    _RE_PARTITION = re.compile(r"^\s*(\d+):\s*(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(.+)$")
 
     @classmethod
     def from_str(cls, s: str, partition_table: PartitionTable) -> Self:
-        if (m := Partition.RE_PARTITION.match(s)) is None:
+        if (m := cls._RE_PARTITION.match(s)) is None:
             raise ValueError(f"Invalid partition string: {s}")
         LOGGER.debug(f"Creating Partition from string: {s}")
         id = int(m.group(1))
@@ -71,7 +71,7 @@ class Partition:
     def root_entries(
         self, case_insensitive: bool = True, can_fail: bool = False
     ) -> fls_types.FsEntryList:
-        return fls_wrapper.fls(
+        return fls_types.FsEntryList.from_partition(
             self, case_insensitive=case_insensitive, can_fail=can_fail, silent_stderr=can_fail
         )
 
@@ -99,17 +99,17 @@ class PartitionTable:
     sector_size: int = 512
     img_type: ImgType | None = None
 
-    RE_OFFSET = re.compile(r"^\s*Offset Sector: (\d+)\s*$")
-    RE_SECTOR_SIZE = re.compile(r"^\s*Units are in (\d+)-byte sectors\s*$")
+    _RE_OFFSET = re.compile(r"^\s*Offset Sector: (\d+)\s*$")
+    _RE_SECTOR_SIZE = re.compile(r"^\s*Units are in (\d+)-byte sectors\s*$")
 
     @classmethod
     def from_str(cls, s: str, image_files: Iterable[str], imgtype: ImgType | None = None) -> Self:
         lines = s.splitlines()
         part_table_type = PartTableType.from_str(lines.pop(0))
-        if (m := PartitionTable.RE_OFFSET.match(lines.pop(0))) is None:
+        if (m := cls._RE_OFFSET.match(lines.pop(0))) is None:
             raise ValueError("Could not find partition table offset")
         offset = Sectors(int(m.group(1)))
-        if (m := PartitionTable.RE_SECTOR_SIZE.match(lines.pop(0))) is None:
+        if (m := cls._RE_SECTOR_SIZE.match(lines.pop(0))) is None:
             raise ValueError("Could not find sector size")
         sector_size = int(m.group(1))
         part_table = cls(tuple(image_files), part_table_type, [], offset, sector_size, imgtype)
@@ -120,6 +120,42 @@ class PartitionTable:
             except ValueError as e:
                 LOGGER.debug(f"(Skipped line: {e})")
         return part_table
+
+    @classmethod
+    def from_image_files(
+        cls,
+        image_files: str | Iterable[str],
+        vstype: VsType | None = None,
+        imgtype: ImgType | None = None,
+        sector_size: int | None = None,
+        offset: int | None = None,
+        **kwargs: Any,
+    ) -> Self:
+        """Runs the `mmls` tool to extract partition information from an image.
+
+        Args:
+            image_files: Path to the image file(s).
+            vstype: Volume system type to use (`dos`, `mac`, `bsd`, `sun`, `gpt`).
+            imgtype: Image type to use (`raw`, `aff`, `afd`, `afm`, `afflib`, `ewf`, `vmdk`, `vhd`).
+            sector_size: Sector size to use.
+            offset: Offset to use for the start of the volume.
+            **kwargs: Additional arguments to pass to `run_program`.
+        """
+        args: list[str] = []
+        if vstype is not None:
+            args += ["-t", vstype]
+        if imgtype is not None:
+            args += ["-i", imgtype]
+        if sector_size is not None:
+            args += ["-b", str(sector_size)]
+        if offset is not None:
+            args += ["-o", str(offset)]
+        if isinstance(image_files, str):
+            image_files = (image_files,)
+        args.extend(image_files)
+
+        res = run_program("mmls", args, logger=LOGGER, encoding="utf-8", **kwargs)
+        return cls.from_str(res, image_files, imgtype)
 
     def sectors_to_bytes(self, sectors: Sectors) -> int:
         return sectors * self.sector_size

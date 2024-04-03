@@ -6,11 +6,12 @@ import sys
 from dataclasses import dataclass
 from functools import cache, cached_property
 from pathlib import Path, PurePath, PurePosixPath, PureWindowsPath
-from typing import BinaryIO, Iterable, Iterator, overload
+from typing import Any, BinaryIO, Iterable, Iterator, overload
 
-from . import fls_wrapper, icat_wrapper
+from .icat_wrapper import icat
 from .mmls_types import Partition
 from .types import FsEntryType, MetaAddress
+from .utils import run_program
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -32,7 +33,7 @@ class FsEntry:
     parent: FsEntry | None = None
     case_insensitive: bool = False
 
-    RE_ENTRY = re.compile(r"^(.)/(.) (?:(\*) )?([^*]+?)(\(realloc\))?:\t(.+)$")
+    _RE_ENTRY = re.compile(r"^(.)/(.) (?:(\*) )?([^*]+?)(\(realloc\))?:\t(.+)$")
 
     @classmethod
     def from_str(
@@ -42,7 +43,7 @@ class FsEntry:
         parent: FsEntry | None = None,
         case_insensitive: bool | None = None,
     ) -> Self:
-        if (m := FsEntry.RE_ENTRY.match(s)) is None:
+        if (m := cls._RE_ENTRY.match(s)) is None:
             raise ValueError(f"Invalid fs entry string: {s}")
         LOGGER.debug(f"Creating FsEntry from string: {s}")
         type_filename = FsEntryType(m.group(1))
@@ -100,7 +101,7 @@ class FsEntry:
     def children(self) -> FsEntryList:
         if not self.is_directory:
             raise ValueError(f"'{self.path}' is not a directory")
-        return fls_wrapper.fls(self.partition, self, self.case_insensitive)
+        return FsEntryList.from_partition(self.partition, self, self.case_insensitive)
 
     @cache
     def child(self, name: str) -> FsEntry:
@@ -121,7 +122,7 @@ class FsEntry:
         if self.is_directory:
             raise ValueError(f"'{self.path}' is a directory")
         LOGGER.info(f"Extracting file '{self.path}'")
-        return icat_wrapper.icat(self.partition, self.meta_address)
+        return icat(self.partition, self.meta_address)
 
     def save_dir(
         self, base_path: str | Path | None = None, parents: bool = False
@@ -226,6 +227,36 @@ class FsEntry:
 @dataclass(frozen=True)
 class FsEntryList:
     entries: list[FsEntry]
+
+    @classmethod
+    def from_partition(
+        cls,
+        partition: Partition,
+        root: FsEntry | None = None,
+        case_insensitive: bool = False,
+        **kwargs: Any,
+    ) -> Self:
+        """Runs the `fls` tool to list files in a partition.
+
+        Args:
+            partition: The partition to list files from.
+            root: The root entry to list files from.
+            case_insensitive: Whether to use case-insensitive matching (for FAT/NFTS partitions)
+            **kwargs: Additional arguments to pass to `run_program`.
+        """
+        args: list[str] = []
+        # args += ["-p"]  # Show full path
+        args += ["-o", str(partition.start)]  # Image offset
+        if partition.partition_table.img_type is not None:
+            args += ["-i", partition.partition_table.img_type]  # Image type
+        args.extend(partition.partition_table.image_files)
+        if root is not None:
+            args.append(str(root.meta_address.address))
+
+        res = run_program("fls", args, logger=LOGGER, encoding="utf-8", **kwargs)
+        return cls(
+            [FsEntry.from_str(line, partition, root, case_insensitive) for line in res.splitlines()]
+        )
 
     @cache
     def find_entry(self, name: str) -> FsEntry:

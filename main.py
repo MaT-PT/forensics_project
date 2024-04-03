@@ -6,9 +6,7 @@ from pathlib import Path
 
 from termcolor import colored, cprint
 
-from sleuthlib import check_required_tools, mmls, set_tsk_path
-from sleuthlib.fls_types import FsEntryList
-from sleuthlib.mmls_types import Partition, PartitionTable
+from sleuthlib import FsEntryList, Partition, PartitionTable, check_required_tools, set_tsk_path
 from utils.argparse_utils import Arguments, parse_args
 from utils.colored_logging import init_logging_colors, print_error, print_info, print_warning
 from utils.config_parser import Config
@@ -161,7 +159,7 @@ def main() -> None:
         for yaml_file in args.file_list:
             file_list += FileList.from_yaml_file(yaml_file, config)
 
-    res_mmls = mmls(
+    res_mmls = PartitionTable.from_image_files(
         args.image,
         vstype=args.vstype,
         imgtype=args.imgtype,
