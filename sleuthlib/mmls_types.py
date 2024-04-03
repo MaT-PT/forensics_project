@@ -21,6 +21,8 @@ LOGGER = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class Partition:
+    """A partition on a disk image, with start and end sectors, length, and description."""
+
     id: int
     slot: str
     start: Sectors
@@ -32,10 +34,11 @@ class Partition:
     _RE_PARTITION = re.compile(r"^\s*(\d+):\s*(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(.+)$")
 
     @classmethod
-    def from_str(cls, s: str, partition_table: PartitionTable) -> Self:
-        if (m := cls._RE_PARTITION.match(s)) is None:
-            raise ValueError(f"Invalid partition string: {s}")
-        LOGGER.debug(f"Creating Partition from string: {s}")
+    def from_str(cls, line: str, partition_table: PartitionTable) -> Self:
+        """Creates a `Partition` instance from a line of the output of `mmls`."""
+        if (m := cls._RE_PARTITION.match(line)) is None:
+            raise ValueError(f"Invalid partition string: {line}")
+        LOGGER.debug(f"Creating Partition from string: {line}")
         id = int(m.group(1))
         slot = m.group(2)
         start = Sectors(int(m.group(3)))
@@ -46,22 +49,27 @@ class Partition:
 
     @cached_property
     def start_bytes(self) -> int:
+        """The partition starting offset, in bytes."""
         return self.partition_table.sectors_to_bytes(self.start)
 
     @cached_property
     def end_bytes(self) -> int:
+        """The partition ending offset, in bytes."""
         return self.partition_table.sectors_to_bytes(self.end)
 
     @cached_property
     def length_bytes(self) -> int:
+        """The partition length, in bytes."""
         return self.partition_table.sectors_to_bytes(self.length)
 
     @cached_property
     def is_filesystem(self) -> bool:
+        """Returns whether the partition is a filesystem partition (ie. has a slot number)."""
         return self.slot.replace(":", "").isdecimal()
 
     @cached_property
     def is_ntfs(self) -> bool:
+        """Returns whether the partition is an NTFS partition (ie. has a `$MFT` entry)."""
         try:
             return "$MFT" in self.root_entries(can_fail=True)
         except ChildProcessError:
@@ -71,12 +79,14 @@ class Partition:
     def root_entries(
         self, case_insensitive: bool = True, can_fail: bool = False
     ) -> fls_types.FsEntryList:
+        """Returns the root entries of the partition, using the `fls` tool.
+        Results are cached to avoid unnecessary re-runs of the tool."""
         return fls_types.FsEntryList.from_partition(
             self, case_insensitive=case_insensitive, can_fail=can_fail, silent_stderr=can_fail
         )
 
-    @cache
     def short_desc(self) -> str:
+        """A short description of the partition: `description [ID id, size_bytes]`."""
         return f"{self.description} [ID {self.id}, {pretty_size(self.length_bytes, False)}]"
 
     def __str__(self) -> str:
@@ -92,6 +102,9 @@ class Partition:
 
 @dataclass(frozen=True)
 class PartitionTable:
+    """A partition table extracted from a disk image with `mmls`.
+    Contains a list of partitions and various metadata."""
+
     image_files: tuple[str, ...]
     part_table_type: PartTableType
     partitions: list[Partition]
@@ -104,6 +117,7 @@ class PartitionTable:
 
     @classmethod
     def from_str(cls, s: str, image_files: Iterable[str], imgtype: ImgType | None = None) -> Self:
+        """Creates a `PartitionTable` instance from the output of `mmls`."""
         lines = s.splitlines()
         part_table_type = PartTableType.from_str(lines.pop(0))
         if (m := cls._RE_OFFSET.match(lines.pop(0))) is None:
@@ -158,14 +172,17 @@ class PartitionTable:
         return cls.from_str(res, image_files, imgtype)
 
     def sectors_to_bytes(self, sectors: Sectors) -> int:
+        """Converts a number of sectors to bytes using the sector size."""
         return sectors * self.sector_size
 
     @cached_property
     def offset_bytes(self) -> int:
+        """The offset of the partition table, in bytes."""
         return self.sectors_to_bytes(self.offset)
 
     @staticmethod
     def partlist_header() -> str:
+        """Returns the column names for the output of `Partition.__str__`."""
         return (
             "ID : Slot           Start (bytes)          End (bytes)  "
             "     Length (bytes)  Description"
@@ -173,6 +190,7 @@ class PartitionTable:
 
     @cache
     def filesystem_partitions(self) -> list[Partition]:
+        """Returns the list of filesystem partitions from this partition table."""
         return [p for p in self.partitions if p.is_filesystem]
 
     def __str__(self) -> str:

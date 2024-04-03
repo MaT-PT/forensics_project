@@ -80,6 +80,10 @@ class FsEntryType(str, Enum):
     VIRTUAL_FILE = "v"
     VIRTUAL_DIRECTORY = "V"
 
+    @property
+    def is_directory(self) -> bool:
+        return self in {self.__class__.DIRECTORY, self.__class__.VIRTUAL_DIRECTORY}
+
     def __str__(self) -> str:
         return FS_ENTRY_TYPES.get(self.value, "Unknown")
 

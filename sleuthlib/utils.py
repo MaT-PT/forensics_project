@@ -54,14 +54,36 @@ def check_required_tools() -> None:
 
 @overload
 def run_program(
-    name: str, args: list[str], logger: Logger, encoding: None = ..., can_fail: bool = ...
-) -> bytes: ...
+    name: str, args: list[str], logger: Logger, encoding: str, can_fail: bool = ...
+) -> str:
+    """Runs a program with the given arguments. Executable is searched in TSK_PATH or PATH.
+    Returns the output of the program as a string, decoded with the given encoding.
+
+    Args:
+        name: The name of the program.
+        args: The arguments to pass to the program.
+        logger: The logger to use.
+        encoding: The encoding to use for the output.
+        can_fail: Whether the program can fail without raising an exception.
+        silent_stderr: Whether to suppress stderr output.
+    """
 
 
 @overload
 def run_program(
-    name: str, args: list[str], logger: Logger, encoding: str, can_fail: bool = ...
-) -> str: ...
+    name: str, args: list[str], logger: Logger, encoding: None = ..., can_fail: bool = ...
+) -> bytes:
+    """Runs a program with the given arguments. Executable is searched in TSK_PATH or PATH.
+    Returns the raw bytes output of the program.
+
+    Args:
+        name: The name of the program.
+        args: The arguments to pass to the program.
+        logger: The logger to use.
+        encoding: None (returns raw bytes).
+        can_fail: Whether the program can fail without raising an exception.
+        silent_stderr: Whether to suppress stderr output.
+    """
 
 
 def run_program(

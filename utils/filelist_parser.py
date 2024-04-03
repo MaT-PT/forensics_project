@@ -347,7 +347,8 @@ class FileList:
 
     @dataclass(frozen=True)
     class File:
-        """File or directory to extract or list, with optional tools to run on it."""
+        """File or directory to extract or list, with optional tools to run on it.
+        Acts as a container for a list of `Tool` instances."""
 
         path: str
         file_list: FileList = field(repr=False)

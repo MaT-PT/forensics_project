@@ -23,6 +23,8 @@ LOGGER = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class FsEntry:
+    """A file system entry, representing a file or directory in a partition."""
+
     name: str
     meta_address: MetaAddress
     type_filename: FsEntryType
@@ -38,14 +40,15 @@ class FsEntry:
     @classmethod
     def from_str(
         cls,
-        s: str,
+        line: str,
         partition: Partition,
         parent: FsEntry | None = None,
         case_insensitive: bool | None = None,
     ) -> Self:
-        if (m := cls._RE_ENTRY.match(s)) is None:
-            raise ValueError(f"Invalid fs entry string: {s}")
-        LOGGER.debug(f"Creating FsEntry from string: {s}")
+        """Creates a `FsEntry` instance from a line of the output of `fls`."""
+        if (m := cls._RE_ENTRY.match(line)) is None:
+            raise ValueError(f"Invalid fs entry string: {line}")
+        LOGGER.debug(f"Creating FsEntry from string: {line}")
         type_filename = FsEntryType(m.group(1))
         type_metadata = FsEntryType(m.group(2))
         is_deleted = m.group(3) is not None
@@ -70,55 +73,64 @@ class FsEntry:
 
     @cached_property
     def inode(self) -> int:
+        """The numeric inode of the entry."""
         return self.meta_address.inode
 
     @cached_property
     def is_directory(self) -> bool:
-        return self.type_filename in (
-            FsEntryType.DIRECTORY,
-            FsEntryType.VIRTUAL_DIRECTORY,
-        ) or self.type_metadata in (FsEntryType.DIRECTORY, FsEntryType.VIRTUAL_DIRECTORY)
+        """Whether the entry is a directory."""
+        return self.type_filename.is_directory or self.type_metadata.is_directory
 
     @cached_property
     def name_path(self) -> PurePath:
+        """The entry name with the correct underlying PurePath implementation (Windows/Posix)."""
         return (PureWindowsPath if self.case_insensitive else PurePosixPath)(self.name)
 
     @cached_property
     def path(self) -> PurePath:
+        """The full path of the entry, including the parent path if available."""
         return self.parent.path / self.name_path if self.parent else self.name_path
 
     @cache
     def name_eq(self, name: str) -> bool:
+        """Checks if the entry name is equal to the given name, optionally case-insensitive."""
         if self.case_insensitive:
             return self.name.lower() == name.lower()
         return self.name == name
 
     @cache
     def name_matches(self, pattern: str) -> bool:
+        """Checks if the entry name matches the given glob pattern."""
         return self.name_path.match(pattern)
 
     @cache
     def children(self) -> FsEntryList:
+        """Returns the children of the entry, if it is a directory. Raises ValueError otherwise."""
         if not self.is_directory:
             raise ValueError(f"'{self.path}' is not a directory")
         return FsEntryList.from_partition(self.partition, self, self.case_insensitive)
 
     @cache
     def child(self, name: str) -> FsEntry:
+        """Returns the child entry with the given name. Raises IndexError if not found."""
         children = self.children()
         return children.find_entry(name)
 
     @cache
     def children_find(self, name: str) -> FsEntryList:
+        """Returns the children entries with the given name (supports glob patterns)."""
         children = self.children()
         return children.find_entries(name)
 
     @cache
     def children_path(self, path: str | PurePath) -> FsEntryList:
+        """Returns the children entries with the given path (supports glob patterns)."""
         children = self.children()
         return children.find_path(path)
 
     def dump_file(self) -> bytes:
+        """Dumps the contents of the file to a bytes object using `icat`.
+        Raises ValueError if the entry is a directory."""
         if self.is_directory:
             raise ValueError(f"'{self.path}' is a directory")
         LOGGER.info(f"Extracting file '{self.path}'")
@@ -127,6 +139,9 @@ class FsEntry:
     def save_dir(
         self, base_path: str | Path | None = None, parents: bool = False
     ) -> tuple[Path, int, int]:
+        """Recursively saves the contents of the directory to the given base path.
+        If `parents` is True, the parent path is included in the base path.
+        Returns the base path, the number of files saved, and the number of directories saved."""
         if not self.is_directory:
             raise ValueError(f"'{self.path}' is not a directory")
         path = self.path if parents else self.name_path
@@ -159,9 +174,17 @@ class FsEntry:
         file: str | Path | None = ...,
         base_path: str | Path | None = ...,
         parents: bool = False,
-    ) -> tuple[Path | None, int]: ...
+    ) -> tuple[Path | None, int]:
+        """Saves the contents of the file entry to the given file path,
+        relative to the base path if provided.
+        If `file` is None, the file name is inferred from the entry name.
+        If `parents` is True, the parent path is included in the base path.
+        Returns the file path and the number of bytes written."""
+
     @overload
-    def save_file(self, file: BinaryIO) -> tuple[Path | None, int]: ...
+    def save_file(self, file: BinaryIO) -> tuple[Path | None, int]:
+        """Saves the contents of the file entry to the given file-like object.
+        Returns the file path and the number of bytes written."""
 
     def save_file(
         self,
@@ -169,6 +192,11 @@ class FsEntry:
         base_path: str | Path | None = None,
         parents: bool = False,
     ) -> tuple[Path | None, int]:
+        """Saves the contents of the file entry to the given file path or file-like object,
+        relative to the base path if provided.
+        If `file` is None, the file name is inferred from the entry name.
+        If `parents` is True, the parent path is included in the base path.
+        Returns the file path and the number of bytes written."""
         must_close = False
         if file is None:
             file = Path(self.name)
@@ -205,6 +233,7 @@ class FsEntry:
 
     @cached_property
     def attributes(self) -> str:
+        """The attributes of the entry as a string (`deleted`, `reallocated`)."""
         attribs: list[str] = []
         if self.is_deleted:
             attribs.append("deleted")
@@ -213,6 +242,7 @@ class FsEntry:
         return f" ({', '.join(attribs)})" if attribs else ""
 
     def short_desc(self) -> str:
+        """A short description of the entry: `type_filename/type_metadata: path (attributes?)`."""
         return (
             f"{self.type_filename.value}/{self.type_metadata.value}: {self.path}{self.attributes}"
         )
@@ -226,6 +256,9 @@ class FsEntry:
 
 @dataclass(frozen=True)
 class FsEntryList:
+    """A list of file system entries, representing files or directories in a partition.
+    Provides methods to search and save entries, and acts as a container of `FsEntry` instances."""
+
     entries: list[FsEntry]
 
     @classmethod
@@ -260,6 +293,7 @@ class FsEntryList:
 
     @cache
     def find_entry(self, name: str) -> FsEntry:
+        """Finds the entry with the given name. Raises IndexError if not found."""
         if (entry := next((f for f in self.entries if f.name_eq(name)), None)) is None:
             raise IndexError(f"No entry found with name '{name}'")
         LOGGER.debug(f"Found entry: '{entry}'")
@@ -267,6 +301,7 @@ class FsEntryList:
 
     @cache
     def find_entries(self, name: str) -> FsEntryList:
+        """Finds all entries with the given name (supports glob patterns)."""
         if entries := [ent for ent in self.entries if ent.name_matches(name)]:
             LOGGER.debug(f"Found entries: {', '.join(str(entry.path) for entry in entries)}")
         else:
@@ -275,6 +310,7 @@ class FsEntryList:
 
     @cache
     def find_path(self, path: str | PurePath) -> FsEntryList:
+        """Finds all entries with the given path (supports glob patterns)."""
         if isinstance(path, str):
             path = PurePath(path.replace("\\", "/"))
         if path.is_absolute():
@@ -290,6 +326,7 @@ class FsEntryList:
         return entries
 
     def save_all(self, base_path: str | Path | None = None) -> tuple[Path, int, int]:
+        """Recursively saves all entries to the given base path."""
         if base_path is None:
             base_path = Path(".")
         else:
@@ -313,6 +350,7 @@ class FsEntryList:
 
     @classmethod
     def empty(cls) -> Self:
+        """Creates an empty `FsEntryList` instance."""
         return cls([])
 
     def __iter__(self) -> Iterator[FsEntry]:
