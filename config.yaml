@@ -35,6 +35,14 @@ tools:
       path: '"${PATH:$PATH}"'
     allow_fail: yes
 
+  - name: rmdir
+    cmd:
+      windows: del /F /Q /S
+      linux: rm -f -r
+    args_extra:
+      path: '"${PATH:$PATH}"'
+    allow_fail: yes
+
   - name: regripper
     cmd:
       windows: '"${PATH:$DIR_REGRIPPER/rip.exe}"'
@@ -65,29 +73,6 @@ tools:
       format: --format $FORMAT
       output: --output "$OUTPUT" --no-confirm-overwrite
       events: --events $EVENTS
-
-  ### Tests ###
-  - name: test_enabled_yes
-    cmd: echo 'Test enabled YES - $FILE'
-    enabled: yes
-  - name: test_enabled_no
-    cmd: echo 'Test enabled NO - $FILE'
-    enabled: no
-  - name: test_disabled_yes
-    cmd: echo 'Test disabled YES - $FILE'
-    disabled: yes
-  - name: test_disabled_no
-    cmd: echo 'Test disabled NO - $FILE'
-    disabled: no
-
-  - name: fails
-    cmd: echo 'Fails - CONFIG - $FILE' >&2; exit 42
-  - name: can_fail
-    cmd: echo 'Can fail - CONFIG - $FILE' >&2; exit 42
-    allow_fail: yes
-  - name: cannot_fail
-    cmd: echo 'Can NOT fail - CONFIG - $FILE' >&2; exit 42
-    allow_fail: no
 
 directories:
   regripper: ../tools/RegRipper3.0
