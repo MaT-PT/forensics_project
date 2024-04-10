@@ -4,30 +4,22 @@ import logging
 import sys
 from pathlib import Path
 
-from colorama import just_fix_windows_console
 from termcolor import colored, cprint
 
-from sleuthlib import check_required_tools, mmls, set_tsk_path
-from sleuthlib.fls_types import FsEntryList
-from sleuthlib.mmls_types import Partition, PartitionTable
+from sleuthlib import FsEntryList, Partition, PartitionTable, check_required_tools, set_tsk_path
 from utils.argparse_utils import Arguments, parse_args
 from utils.colored_logging import init_logging_colors, print_error, print_info, print_warning
 from utils.config_parser import Config
 from utils.filelist_parser import FileList
 
-just_fix_windows_console()
+SCRIPT_DIR = Path(__file__ if "__file__" in globals() else sys.argv[0]).parent
 
 logging.basicConfig(
     level=logging.WARNING,
-    format=f"[%(asctime)s] %(levelname)s ({colored('%(name)s', 'grey', attrs=['bold'])}) "
-    "%(message)s",
+    format=f"[%(asctime)s] %(levelname)s ({colored('%(name)s', 'dark_grey')}) %(message)s",
     # datefmt=f"%Y-%m-%d {colored('%H:%M:%S', attrs=['bold'])}",
     datefmt=f"{colored('%H:%M:%S', attrs=['bold'])}",
 )
-init_logging_colors()
-
-SCRIPT_DIR = Path(__file__ if "__file__" in globals() else sys.argv[0]).parent
-CONFIG_FILE = SCRIPT_DIR / "config.yaml"
 
 
 def process_files(
@@ -37,6 +29,15 @@ def process_files(
     out_dir: str | None = None,
     extra_vars: dict[str, str] = {},
 ) -> None:
+    """Extracts or lists files from the given list of files in the given root entries.
+
+    Args:
+        file_list: The list of files to extract or list.
+        root_entries: The root entries to search for the files in.
+        args: The parsed arguments from the CLI.
+        out_dir: The output directory.
+        extra_vars: Extra variables to pass to the tools.
+    """
     if out_dir is None:
         out_dir = args.out_dir
 
@@ -51,9 +52,11 @@ def process_files(
                 print_info(f"Extracting: {entry.short_desc()}")
             path: Path | None
             if entry.is_directory:
-                path, _, _ = entry.save_dir(base_path=out_dir, parents=True)
+                path, _, _ = entry.save_dir(
+                    base_path=out_dir, parents=True, overwrite=file.overwrite
+                )
             else:
-                path, _ = entry.save_file(base_path=out_dir, parents=True)
+                path, _ = entry.save_file(base_path=out_dir, parents=True, overwrite=file.overwrite)
             for tool in file.tools:
                 if not args.silent:
                     print_info(f"Running {tool}...")
@@ -71,6 +74,15 @@ def process_partition(
     args: Arguments,
     out_dir: str | None = None,
 ) -> None:
+    """Processes the given partition.
+
+    Args:
+        partition: The partition to process.
+        part_num: The partition number in the image.
+        file_list: The list of files to extract or list.
+        args: The parsed arguments from the CLI.
+        out_dir: The output directory.
+    """
     if out_dir is None:
         out_dir = args.out_dir
 
@@ -92,6 +104,14 @@ def process_partition(
 
 
 def choose_partitions(partitions: list[Partition]) -> list[int]:
+    """Prompts the user to choose the partition(s) to use.
+
+    Args:
+        partitions: The list of partitions to choose from.
+
+    Returns:
+        The list of partition numbers chosen by the user.
+    """
     default_part = max(enumerate(partitions), key=lambda i_p: i_p[1].length)[0]
     print("Please select the partition number(s) to use:")
     print()
@@ -111,11 +131,13 @@ def choose_partitions(partitions: list[Partition]) -> list[int]:
         else:
             return [int(num) for num in user_input.replace(",", " ").split()]
     except ValueError:
-        print_error("Invalid partition number")
-        exit(1)
+        print_error("Invalid partition number", exit_code=1)
 
 
 def main() -> None:
+    """The main function of the script.
+    Parses the arguments, processes the image, and extracts/lists the files."""
+    init_logging_colors()
     args = parse_args()
 
     if args.verbose > 1:
@@ -129,10 +151,9 @@ def main() -> None:
     try:
         check_required_tools()
     except FileNotFoundError as e:
-        print_error(str(e))
-        exit(1)
+        print_error(str(e), exit_code=1)
 
-    config = Config.from_yaml_file(CONFIG_FILE)
+    config = Config.from_yaml_file(args.config if args.config else SCRIPT_DIR / "config.yaml")
     file_list = FileList.empty(config)
     if args.file is not None:
         file_list.extend(args.file)
@@ -140,7 +161,7 @@ def main() -> None:
         for yaml_file in args.file_list:
             file_list += FileList.from_yaml_file(yaml_file, config)
 
-    res_mmls = mmls(
+    res_mmls = PartitionTable.from_image_files(
         args.image,
         vstype=args.vstype,
         imgtype=args.imgtype,
@@ -171,9 +192,9 @@ def main() -> None:
             valid += f"-{len(partitions) - 1}"
         print_error(
             f"Invalid partition number(s): {', '.join(str(part_num) for part_num in part_nums)} "
-            f"(valid: {colored(valid, attrs=['bold'])})"
+            f"(valid: {colored(valid, attrs=['bold'])})",
+            exit_code=1,
         )
-        exit(1)
 
     if not args.silent:
         print_info("Selected partition(s):")

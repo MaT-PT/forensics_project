@@ -10,6 +10,7 @@ from typing import Any, Iterable, Iterator, TypedDict, overload
 
 import yaml
 
+from .colored_logging import print_error
 from .config_parser import Config
 from .variable_utils import get_username, sub_vars
 
@@ -23,6 +24,8 @@ LOGGER = logging.getLogger(__name__)
 
 @dataclass
 class MutableBool:
+    """Represents a mutable boolean value. Use `set` to set it to `True` and `reset` for `False`."""
+
     value: bool = False
 
     def __bool__(self) -> bool:
@@ -45,15 +48,22 @@ class MutableBool:
 
 @dataclass(frozen=True)
 class FileList:
+    """List of files and tools to run on them, parsed from a YAML file.
+    Use `FileList.from_yaml_file` to parse a YAML file and return a `FileList` instance."""
+
     files: list[File]
     config: Config
 
     class YamlFilesOutput(TypedDict):
+        """YAML dict: Output file configuration for a tool."""
+
         path: str
         append: NotRequired[bool]
         stderr: NotRequired[bool]
 
     class YamlFilesTool(TypedDict):
+        """YAML dict: Tool configuration."""
+
         name: NotRequired[str]
         cmd: NotRequired[str]
         extra: NotRequired[dict[str, Any]]
@@ -64,15 +74,23 @@ class FileList:
         run_once: NotRequired[bool]
 
     class YamlFilesFile(TypedDict):
+        """YAML dict: File configuration with path and optional tool(s)."""
+
         path: str
         tool: NotRequired[FileList.YamlFilesTool]
         tools: NotRequired[list[FileList.YamlFilesTool]]
+        overwrite: NotRequired[bool]
 
     class YamlFiles(TypedDict):
+        """YAML dict: Top-level configuration with file list."""
+
         files: list[str | FileList.YamlFilesFile]
 
     @dataclass(frozen=True)
     class Tool:
+        """Tool to run on a file, with either a command or a reference to a tool in the config.
+        Use `Tool.from_dict` to parse a dict and return a `Tool` instance."""
+
         file: FileList.File = field(repr=False)
         cmd: str | None = None
         name: str | None = None
@@ -86,12 +104,23 @@ class FileList:
 
         @dataclass(frozen=True)
         class Output:
+            """Output file configuration for a tool.
+            Use `Output.from_dict` to create an `Output` instance from a dict or string.
+
+            Attributes:
+                path: The path to the output file.
+                append: Whether to append to the output file (default: False).
+                stderr: Whether to redirect STDERR to the output file (default: False).
+            """
+
             path: str
             append: bool = False
             stderr: bool = False
 
             @classmethod
             def from_dict(cls, data: FileList.YamlFilesOutput | str | Any) -> Self:
+                """Creates an `Output` instance from a dict or string.
+                If a string is provided, it is assumed to be a path to the output file."""
                 if isinstance(data, str):
                     return cls(path=data)
                 if not (isinstance(data, dict) and "path" in data):
@@ -104,6 +133,9 @@ class FileList:
 
         @classmethod
         def from_dict(cls, data: FileList.YamlFilesTool | Any, file: FileList.File) -> Self:
+            """Creates a `Tool` instance from a dict or string.
+            If a string is provided, it is assumed to be a command,
+            and all other attributes are set to `None`, `False`, or empty sequences."""
             if isinstance(data, str):
                 return cls(cmd=data, file=file)
             if not isinstance(data, dict):
@@ -132,6 +164,18 @@ class FileList:
             extra_vars: dict[str, str] = {},
             extra_args: str | None = None,
         ) -> str | None:
+            """Generates the command to run the tool on a file, with all variables substituted.
+            Returns `None` if the tool is disabled.
+
+            In addition to other variables, the following variables are available:
+            - `$FILE`: The full path to the file.
+            - `$OUTDIR`: The output directory.
+            - `$PARENT`: The parent directory of the file.
+            - `$ENTRYPATH`: The file/dir entry path in the original filesytem.
+            - `$FILENAME`: The name of the file (without its parent path).
+            - `$USERNAME`: The username part of the file path, if applicable
+                           (eg. `\\Users\\foo\\NTUSER.dat` or `/home/foo/.profile`).
+            """
             config = self.file.file_list.config
             if out_dir is None:
                 out_dir = Path(".")
@@ -186,6 +230,19 @@ class FileList:
             extra_args: str | None = None,
             silent: bool = False,
         ) -> int | None:
+            """Runs the tool on a file, with all variables substituted. Returns the return code,
+            or `None` if the tool did not run (disabled, has already run and `run_once` is set,
+            or the file does not match the filter).
+
+            In addition to other variables, the following variables are available:
+            - `$FILE`: The full path to the file.
+            - `$OUTDIR`: The output directory.
+            - `$PARENT`: The parent directory of the file.
+            - `$ENTRYPATH`: The file/dir entry path in the original filesytem.
+            - `$FILENAME`: The name of the file (without its parent path).
+            - `$USERNAME`: The username part of the file path, if applicable
+                           (eg. `\\Users\\foo\\NTUSER.dat` or `/home/foo/.profile`).
+            """
             if entry_path is not None:
                 if isinstance(entry_path, str):
                     entry_path = PurePath(entry_path)
@@ -209,8 +266,7 @@ class FileList:
             elif isinstance(file_path, str):
                 file_path = Path(file_path)
 
-            cmd = self.get_command(file_path, out_dir, extra_vars, extra_args)
-            if cmd is None:
+            if (cmd := self.get_command(file_path, out_dir, extra_vars, extra_args)) is None:
                 return None
 
             if self.run_once:
@@ -257,15 +313,15 @@ class FileList:
                 proc_res = subprocess.run(cmd, shell=True, check=check, stdout=subprocess.DEVNULL)
             else:
                 proc_res = subprocess.run(cmd, shell=True, check=check)
-            ret = proc_res.returncode
-            if ret == 0:
-                LOGGER.info(f"Command succeeded (returned {ret})")
+            if (ret := proc_res.returncode) == 0:
+                LOGGER.info("Command succeeded")
             else:
                 LOGGER.warning(f"Command failed (returned {ret})")
             return ret
 
         @property
         def has_run(self) -> bool:
+            """Returns whether the tool has already run."""
             return bool(self._has_run)
 
         def __str__(self) -> str:
@@ -292,41 +348,51 @@ class FileList:
 
     @dataclass(frozen=True)
     class File:
+        """File or directory to extract or list, with optional tools to run on it.
+        Acts as a container for a list of `Tool` instances."""
+
         path: str
         file_list: FileList = field(repr=False)
         tools: list[FileList.Tool] = field(default_factory=list)
+        overwrite: bool = True
 
         @classmethod
-        def from_str(cls, data: str, file_list: FileList) -> Self:
-            return cls(path=cls.normalize_path(data), file_list=file_list)
+        def from_str(cls, data: str, file_list: FileList, overwrite: bool = True) -> Self:
+            """Creates a simple `File` instance from a string path."""
+            return cls(path=cls.normalize_path(data), file_list=file_list, overwrite=overwrite)
 
         @classmethod
         def from_dict(cls, data: FileList.YamlFilesFile | str | Any, file_list: FileList) -> Self:
+            """Creates a `File` instance from a dict or string. If a string is provided,
+            it is assumed to be a path to the file, and no tools are added."""
             if isinstance(data, str):
                 return cls.from_str(data, file_list)
             if not (isinstance(data, dict) and "path" in data):
                 raise KeyError("Missing 'path' key")
-            res = cls.from_str(data["path"], file_list)
+            file = cls.from_str(data["path"], file_list, data.get("overwrite", True))
             if "tool" in data:
                 if isinstance(data["tool"], dict):
-                    res.tools.append(FileList.Tool.from_dict(data["tool"], res))
+                    file.tools.append(FileList.Tool.from_dict(data["tool"], file))
                 else:
                     raise TypeError("Invalid 'tool' key (must be a dict)")
             if "tools" in data:
                 if isinstance(data["tools"], list):
-                    res.tools.extend(FileList.Tool.from_dict(tool, res) for tool in data["tools"])
+                    file.tools.extend(FileList.Tool.from_dict(tool, file) for tool in data["tools"])
                 else:
                     raise TypeError("Invalid 'tools' key (must be a list)")
-            return res
+            return file
 
         @classmethod
         def from_file_or_str(cls, file: Self | str, file_list: FileList) -> Self:
+            """Creates a `File` instance from a string path, or a `File` instance (no-op)."""
             if isinstance(file, str):
                 return cls.from_str(file, file_list)
             return file
 
         @staticmethod
         def normalize_path(path: str) -> str:
+            """Normalizes a path by replacing backslashes with forward slashes
+            and removing the `C:` drive letter."""
             return path.replace("\\", "/").lstrip("C:/").lstrip("c:/").strip("/")
 
         def __hash__(self) -> int:
@@ -337,10 +403,11 @@ class FileList:
 
     @classmethod
     def from_dict(cls, data: YamlFiles | Any, config: Config) -> Self:
+        """Creates a `FileList` instance from a dict with a list of files to extract,
+        and optionally tools to run on them."""
         if not (isinstance(data, dict) and "files" in data):
             raise KeyError("Missing 'files' key")
-        files = data["files"]
-        if not isinstance(files, list):
+        if not isinstance(files := data["files"], list):
             raise TypeError("'files' must be a list")
         file_list = cls(files=[], config=config)
         file_list.extend(FileList.File.from_dict(file, file_list) for file in files)
@@ -348,17 +415,22 @@ class FileList:
 
     @classmethod
     def from_yaml_file(cls, yaml_file: str | Path, config: Config) -> Self:
-        """Parse a YAML file and return a list of files/directories to extract"""
-        with open(yaml_file, "r") as file:
-            data: FileList.YamlFiles | Any = yaml.safe_load(file)
+        """Parses a YAML file and return a list of files/directories to extract,
+        and optionally tools to run on them."""
+        try:
+            with open(yaml_file, "r") as file:
+                data: FileList.YamlFiles | Any = yaml.safe_load(file)
+        except FileNotFoundError:
+            print_error(f"File '{yaml_file}' not found", exit_code=1)
         return cls.from_dict(data, config)
 
     @classmethod
     def empty(cls, config: Config) -> Self:
+        """Creates an empty `FileList` instance with the given configuration."""
         return cls(files=[], config=config)
 
     def sort_files(self) -> None:
-        """Sort files by dependencies"""
+        """Sorts files by dependencies using a topological sort algorithm."""
         sorter: TopologicalSorter[str] = TopologicalSorter()
         for file in self.files:
             sorter.add(file.path)
@@ -372,19 +444,19 @@ class FileList:
         self.files.sort(key=lambda file: indices[file.path])
 
     def reset_tools(self) -> None:
-        """Reset the `has_run` flag for all tools"""
+        """Resets the `has_run` flag for all tools."""
         LOGGER.debug("Resetting tools 'has_run' status...")
         for file in self.files:
             for tool in file.tools:
                 tool._has_run.reset()
 
     def append(self, file: File | str) -> None:
-        """Append a File to the list"""
+        """Appends a `File` or file path to the list."""
         self.files.append(FileList.File.from_file_or_str(file, self))
         self.sort_files()
 
     def extend(self, files: Iterable[File | str]) -> None:
-        """Extend the list with a list of Files"""
+        """Extends the list with a list of `File`s or file paths."""
         self.files.extend(FileList.File.from_file_or_str(file, self) for file in files)
         self.sort_files()
 
@@ -392,7 +464,7 @@ class FileList:
         return bool(self.files)
 
     def __add__(self, other: FileList) -> FileList:
-        """Merge two FileList instances"""
+        """Merges two `FileList` instances."""
         if not isinstance(other, FileList):
             raise NotImplementedError(
                 f"Cannot merge {type(self).__name__} with {type(other).__name__}"
@@ -415,8 +487,7 @@ class FileList:
     def __getitem__(self, item: slice) -> Self: ...
 
     def __getitem__(self, item: int | slice) -> File | Self:
-        res = self.files[item]
-        if isinstance(res, list):
+        if isinstance(res := self.files[item], list):
             return self.__class__(files=res, config=self.config)
         return res
 

@@ -9,6 +9,8 @@ _T = TypeVar("_T")
 
 @dataclass(frozen=True)
 class Arguments:
+    """Parsed, typed arguments from the CLI."""
+
     image: list[str]
     tsk_path: str | None
     vstype: VsType | None
@@ -22,25 +24,15 @@ class Arguments:
     file: list[str] | None
     file_list: list[str] | None
     out_dir: str | None
+    config: str | None
     case_sensitive: bool
     silent: bool
     verbose: int
 
 
-def int_min(min_val: int = 0) -> Callable[[str], int]:
-    def int_min_inner(value: str) -> int:
-        try:
-            n = int(value)
-        except ValueError as e:
-            raise ArgumentTypeError(str(e))
-        if n < min_val:
-            raise ArgumentTypeError(f"should be an integer >= {min_val}")
-        return n
-
-    return int_min_inner
-
-
 class ListableAction(Action):
+    """Argparse action that shows the supported choices for an argument if the value is `list`."""
+
     def __init__(
         self,
         option_strings: Sequence[str],
@@ -87,7 +79,23 @@ class ListableAction(Action):
             parser.exit()
 
 
+def int_min(min_val: int = 0) -> Callable[[str], int]:
+    """Returns a function that converts a string to an integer, ensuring its value is >= min_val."""
+
+    def int_min_inner(value: str) -> int:
+        try:
+            n = int(value)
+        except ValueError as e:
+            raise ArgumentTypeError(str(e))
+        if n < min_val:
+            raise ArgumentTypeError(f"should be an integer >= {min_val}")
+        return n
+
+    return int_min_inner
+
+
 def parse_args() -> Arguments:
+    """Parses the CLI arguments using argparse, and returns them as a typed dataclass."""
     parser = ArgumentParser(description="TheSleuthKit Python Interface")
     parser.add_argument("image", nargs="+", help="The image(s) to analyze")
     parser.add_argument(
@@ -168,6 +176,11 @@ def parse_args() -> Arguments:
         "-d",
         "--out-dir",
         help="The directory to extract the file(s)/dir(s) to",
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        help="The YAML file containing the configuration of the tools to use and directories",
     )
     parser.add_argument(
         "-S",

@@ -9,6 +9,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 def icat(partition: Partition, inode: MetaAddress, **kwargs: Any) -> bytes:
+    """Runs the `icat` tool to extract a file from a partition.
+
+    Args:
+        partition: The partition to extract the file from.
+        inode: The inode to extract.
+        **kwargs: Additional arguments to pass to `run_program`."""
     args: list[str] = []
     args.append("-r")  # Recover deleted files
     args += ["-o", str(partition.start)]  # Image offset

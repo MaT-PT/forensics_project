@@ -3,15 +3,23 @@ files:
     tool:
       cmd: "echo 'Test file: $FILE'; echo 'Test STDERR' >&2; ls -l '$OUTDIR/$MFT'"
       requires:
-        - C:\$MFT
+        - \Users\*\Desktop
+    overwrite: no
   - path: $MFT
     tool:
       cmd: "echo 'Test USERNAME: $FILE - $USERNAME'"
+  - path: $MFT
+    tool:
+      cmd: "echo 'Test overwrite: $FILE'"
+    overwrite: no
   - path: Users/*/Desktop/*
     tools:
       - cmd: "echo 'Test filter: $FILE'"
         filter: "*.ini"
+        requires:
+          - \Users\*\Desktop
       - cmd: "echo 'Test USERNAME: $FILE - $USERNAME'"
+    overwrite: no
   - path: C:\Users\*\Desktop
     tools:
       - "echo 'Test dir: $FILE'"
