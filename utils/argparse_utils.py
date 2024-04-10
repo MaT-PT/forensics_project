@@ -96,40 +96,44 @@ def int_min(min_val: int = 0) -> Callable[[str], int]:
 
 def parse_args() -> Arguments:
     """Parses the CLI arguments using argparse, and returns them as a typed dataclass."""
-    parser = ArgumentParser(description="TheSleuthKit Python Interface")
+    parser = ArgumentParser(description="'The Sleuth Kit' Python Interface")
     parser.add_argument("image", nargs="+", help="The image(s) to analyze")
-    parser.add_argument(
+
+    grp_tsk = parser.add_argument_group("The Sleuth Kit options")
+    grp_tsk.add_argument(
         "-T",
         "--tsk-path",
         help="The directory where the TSK tools are installed (default: search in PATH)",
     )
-    parser.add_argument(
+    grp_tsk.add_argument(
         "-t",
         "--vstype",
         action=ListableAction,
         choices=PART_TABLE_TYPES,
         help="The type of volume system (use '-t list' to list supported types)",
     )
-    parser.add_argument(
+    grp_tsk.add_argument(
         "-i",
         "--imgtype",
         action=ListableAction,
         choices=IMG_TYPES,
         help="The format of the image file (use '-i list' to list supported types)",
     )
-    parser.add_argument(
+    grp_tsk.add_argument(
         "-b",
         "--sector-size",
         type=int_min(512),
         help="The size (in bytes) of the device sectors",
     )
-    parser.add_argument(
+    grp_tsk.add_argument(
         "-o",
         "--offset",
         type=int_min(0),
         help="Offset to the start of the volume that contains the partition system (in sectors)",
     )
-    xgrp_partition = parser.add_mutually_exclusive_group()
+
+    grp_extract = parser.add_argument_group("Extraction options")
+    xgrp_partition = grp_extract.add_mutually_exclusive_group()
     xgrp_partition.add_argument(
         "-p",
         "--part-num",
@@ -144,7 +148,7 @@ def parse_args() -> Arguments:
         action="store_true",
         help="List data partitions and ask for which one(s) to use",
     )
-    xgrp_list_save = parser.add_mutually_exclusive_group()
+    xgrp_list_save = grp_extract.add_mutually_exclusive_group()
     xgrp_list_save.add_argument(
         "-l",
         "--list",
@@ -158,36 +162,37 @@ def parse_args() -> Arguments:
         action="store_true",
         help="Save all files and directories in the partition",
     )
-    parser.add_argument(
+    grp_extract.add_argument(
         "-f",
         "--file",
         action="extend",
         nargs="+",
         help="The file(s)/dir(s) to extract",
     )
-    parser.add_argument(
+    grp_extract.add_argument(
         "-F",
         "--file-list",
         action="extend",
         nargs="+",
         help="YAML file(s) containing the file(s)/dir(s) to extract, with tools to use and options",
     )
-    parser.add_argument(
+    grp_extract.add_argument(
         "-d",
         "--out-dir",
         help="The directory to extract the file(s)/dir(s) to",
     )
-    parser.add_argument(
+    grp_extract.add_argument(
         "-c",
         "--config",
         help="The YAML file containing the configuration of the tools to use and directories",
     )
-    parser.add_argument(
+    grp_extract.add_argument(
         "-S",
         "--case-sensitive",
         action="store_true",
         help="Case-sensitive file search (default is case-insensitive)",
     )
+
     xgrp_verbosity = parser.add_mutually_exclusive_group()
     xgrp_verbosity.add_argument(
         "-s",
