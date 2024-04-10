@@ -97,7 +97,9 @@ def int_min(min_val: int = 0) -> Callable[[str], int]:
 def parse_args() -> Arguments:
     """Parses the CLI arguments using argparse, and returns them as a typed dataclass."""
     parser = ArgumentParser(description="'The Sleuth Kit' Python Interface")
-    parser.add_argument("image", nargs="+", help="The image(s) to analyze")
+    parser.add_argument(
+        "image", nargs="+", help="The image file(s) to analyze (if multiple, concatenate them)"
+    )
 
     grp_tsk = parser.add_argument_group("The Sleuth Kit options")
     grp_tsk.add_argument(

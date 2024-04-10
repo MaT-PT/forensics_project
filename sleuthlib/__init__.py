@@ -32,7 +32,7 @@ def mmls(
     Args:
         image_files: Path to the image file(s).
         vstype: Volume system type to use (`dos`, `mac`, `bsd`, `sun`, or `gpt`).
-        imgtype: Image type to use (`raw`, `aff`, `afd`, `afm`, `afflib`, `ewf`, `vmdk`, or `vhd`).
+        imgtype: Image type to use (`raw`/`aff`/`afd`/`afm`/`afflib`/`ewf`/`vmdk`/`vhd`/`logical`).
         sector_size: Sector size to use.
         offset: Offset to use for the start of the volume.
         **kwargs: Additional arguments to pass to `run_program`.
