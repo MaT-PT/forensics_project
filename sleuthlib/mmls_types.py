@@ -195,12 +195,12 @@ class PartitionTable:
 
     def __str__(self) -> str:
         return (
-            f"* Type: {self.part_table_type} [{self.part_table_type.value}]\n"
-            f"* Offset: {self.offset} ({self.offset_bytes} B)\n"
-            f"* Sector size: {self.sector_size} B\n"
-            "* Partitions:\n"
-            f"    {self.partlist_header()}\n"
-        ) + "\n".join(f"  * {str(p)}" for p in self.partitions)
+            f"Type: {self.part_table_type} [{self.part_table_type.value}]\n"
+            f"Offset: {self.offset} ({self.offset_bytes} B)\n"
+            f"Sector size: {self.sector_size} B\n"
+            "Partitions:\n"
+            f"   {self.partlist_header()}\n"
+        ) + "\n".join(f" * {str(p)}" for p in self.partitions)
 
     def __hash__(self) -> int:
         return hash(
