@@ -1,0 +1,58 @@
+tools:
+  - name: print
+    cmd: echo
+    args_extra:
+      text: $TEXT
+
+  - name: print_newline
+    cmd:
+      windows: echo.
+      linux: echo
+
+  - name: print_filename
+    cmd:
+      windows: echo.$FILE
+      linux: echo "$FILE"
+
+  - name: print_filename_separated
+    cmd:
+      windows: "echo -------------------- & echo File: $FILE & echo --------------------"
+      linux: 'echo --------------------; echo "File: $FILE"; echo --------------------'
+
+  - name: mkdir
+    cmd:
+      windows: cmd /X /C md
+      linux: mkdir -p
+    args_extra:
+      dir: '"${PATH:$DIR}"'
+    allow_fail: yes
+
+  - name: rm
+    cmd:
+      windows: del /F /Q
+      linux: rm -f
+    args_extra:
+      path: '"${PATH:$PATH}"'
+    allow_fail: yes
+
+  - name: test_enabled_yes
+    cmd: echo 'Test enabled YES - $FILE'
+    enabled: yes
+  - name: test_enabled_no
+    cmd: echo 'Test enabled NO - $FILE'
+    enabled: no
+  - name: test_disabled_yes
+    cmd: echo 'Test disabled YES - $FILE'
+    disabled: yes
+  - name: test_disabled_no
+    cmd: echo 'Test disabled NO - $FILE'
+    disabled: no
+
+  - name: fails
+    cmd: echo 'Fails - CONFIG - $FILE' >&2; exit 42
+  - name: can_fail
+    cmd: echo 'Can fail - CONFIG - $FILE' >&2; exit 42
+    allow_fail: yes
+  - name: cannot_fail
+    cmd: echo 'Can NOT fail - CONFIG - $FILE' >&2; exit 42
+    allow_fail: no
