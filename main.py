@@ -168,7 +168,7 @@ def main() -> None:
         sector_size=args.sector_size,
         offset=args.offset,
     )
-    if args.ls and not file_list:
+    if args.ls and args.file is None and args.file_list is None:
         print(res_mmls)
         return
 
@@ -201,19 +201,23 @@ def main() -> None:
         for part_num in part_nums:
             print(f"    - {part_num}: {partitions[part_num].short_desc()}")
 
-    if not file_list:
+    if not args.save_all:
+        if not file_list:
+            if not args.silent:
+                print_warning(f"No files to {'list' if args.ls else 'extract'}")
+            return
         if not args.silent:
-            print_warning(f"No files to {'list' if args.ls else 'extract'}")
-        return
-    if not args.silent:
-        print_info(f"Files to {'list' if args.ls else 'extract'}:")
-        for file in file_list:
-            print(f"    - {file.path}")
+            print_info(f"Files to {'list' if args.ls else 'extract'}:")
+            for file in file_list:
+                print(f"    - {file.path}")
 
     out_dir_base = args.out_dir if args.out_dir is not None else "extracted"
     for part_num in part_nums:
         out_dir = f"{out_dir_base}_{part_num}" if len(part_nums) > 1 else out_dir_base
         process_partition(partitions[part_num], part_num, file_list, args, out_dir=out_dir)
+
+    if not args.silent:
+        print_info("Done")
 
 
 if __name__ == "__main__":

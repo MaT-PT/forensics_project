@@ -16,13 +16,14 @@ PART_TABLE_TYPES = {
 
 IMG_TYPES = {
     "raw": "Single or split raw file (dd)",
-    "aff": "Advanced Forensic Format",
-    "afd": "AFF Multiple File",
-    "afm": "AFF with external metadata",
-    "afflib": "All AFFLIB image formats (including beta ones)",
-    "ewf": "Expert Witness Format (EnCase)",
-    "vmdk": "Virtual Machine Disk (VmWare, Virtual Box)",
-    "vhd": "Virtual Hard Drive (Microsoft)",
+    "aff": "Advanced Forensic Format [requires AFFLIB]",
+    "afd": "AFF Multiple File [requires AFFLIB]",
+    "afm": "AFF with external metadata [requires AFFLIB]",
+    "afflib": "All AFFLIB image formats (including beta ones) [requires AFFLIB]",
+    "ewf": "Expert Witness Format (EnCase) [requires libewf]",
+    "vmdk": "Virtual Machine Disk (VmWare, Virtual Box) [requires libvmdk]",
+    "vhd": "Virtual Hard Drive (Microsoft) [requires libvhdi]",
+    "logical": "Logical Directory [Windows only]",
 }
 
 FS_ENTRY_TYPES = {
@@ -43,7 +44,7 @@ FS_ENTRY_TYPES = {
 Sectors = NewType("Sectors", int)
 
 VsType: TypeAlias = Literal["dos", "mac", "bsd", "sun", "gpt"]
-ImgType: TypeAlias = Literal["raw", "aff", "afd", "afm", "afflib", "ewf", "vmdk", "vhd"]
+ImgType: TypeAlias = Literal["raw", "aff", "afd", "afm", "afflib", "ewf", "vmdk", "vhd", "logical"]
 
 
 class PartTableType(str, Enum):

@@ -150,7 +150,7 @@ class PartitionTable:
         Args:
             image_files: Path to the image file(s).
             vstype: Volume system type to use (`dos`, `mac`, `bsd`, `sun`, `gpt`).
-            imgtype: Image type to use (`raw`, `aff`, `afd`, `afm`, `afflib`, `ewf`, `vmdk`, `vhd`).
+            imgtype: Image type (`raw`/`aff`/`afd`/`afm`/`afflib`/`ewf`/`vmdk`/`vhd`/`logical`).
             sector_size: Sector size to use.
             offset: Offset to use for the start of the volume.
             **kwargs: Additional arguments to pass to `run_program`.
@@ -195,12 +195,12 @@ class PartitionTable:
 
     def __str__(self) -> str:
         return (
-            f"* Type: {self.part_table_type} [{self.part_table_type.value}]\n"
-            f"* Offset: {self.offset} ({self.offset_bytes} B)\n"
-            f"* Sector size: {self.sector_size} B\n"
-            "* Partitions:\n"
-            f"    {self.partlist_header()}\n"
-        ) + "\n".join(f"  * {str(p)}" for p in self.partitions)
+            f"Type: {self.part_table_type} [{self.part_table_type.value}]\n"
+            f"Offset: {self.offset} ({self.offset_bytes} B)\n"
+            f"Sector size: {self.sector_size} B\n"
+            "Partitions:\n"
+            f"   {self.partlist_header()}\n"
+        ) + "\n".join(f" * {str(p)}" for p in self.partitions)
 
     def __hash__(self) -> int:
         return hash(
