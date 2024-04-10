@@ -52,9 +52,11 @@ def process_files(
                 print_info(f"Extracting: {entry.short_desc()}")
             path: Path | None
             if entry.is_directory:
-                path, _, _ = entry.save_dir(base_path=out_dir, parents=True)
+                path, _, _ = entry.save_dir(
+                    base_path=out_dir, parents=True, overwrite=file.overwrite
+                )
             else:
-                path, _ = entry.save_file(base_path=out_dir, parents=True)
+                path, _ = entry.save_file(base_path=out_dir, parents=True, overwrite=file.overwrite)
             for tool in file.tools:
                 if not args.silent:
                     print_info(f"Running {tool}...")

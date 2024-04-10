@@ -79,6 +79,7 @@ class FileList:
         path: str
         tool: NotRequired[FileList.YamlFilesTool]
         tools: NotRequired[list[FileList.YamlFilesTool]]
+        overwrite: NotRequired[bool]
 
     class YamlFiles(TypedDict):
         """YAML dict: Top-level configuration with file list."""
@@ -353,11 +354,12 @@ class FileList:
         path: str
         file_list: FileList = field(repr=False)
         tools: list[FileList.Tool] = field(default_factory=list)
+        overwrite: bool = True
 
         @classmethod
-        def from_str(cls, data: str, file_list: FileList) -> Self:
+        def from_str(cls, data: str, file_list: FileList, overwrite: bool = True) -> Self:
             """Creates a simple `File` instance from a string path."""
-            return cls(path=cls.normalize_path(data), file_list=file_list)
+            return cls(path=cls.normalize_path(data), file_list=file_list, overwrite=overwrite)
 
         @classmethod
         def from_dict(cls, data: FileList.YamlFilesFile | str | Any, file_list: FileList) -> Self:
@@ -367,7 +369,7 @@ class FileList:
                 return cls.from_str(data, file_list)
             if not (isinstance(data, dict) and "path" in data):
                 raise KeyError("Missing 'path' key")
-            file = cls.from_str(data["path"], file_list)
+            file = cls.from_str(data["path"], file_list, data.get("overwrite", True))
             if "tool" in data:
                 if isinstance(data["tool"], dict):
                     file.tools.append(FileList.Tool.from_dict(data["tool"], file))

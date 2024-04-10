@@ -137,10 +137,11 @@ class FsEntry:
         return icat(self.partition, self.meta_address)
 
     def save_dir(
-        self, base_path: str | Path | None = None, parents: bool = False
+        self, base_path: str | Path | None = None, parents: bool = False, overwrite: bool = True
     ) -> tuple[Path, int, int]:
         """Recursively saves the contents of the directory to the given base path.
         If `parents` is True, the parent path is included in the base path.
+        If `overwrite` is False, the files that already exist are not extracted.
         Returns the base path, the number of files saved, and the number of directories saved."""
         if not self.is_directory:
             raise ValueError(f"'{self.path}' is not a directory")
@@ -156,11 +157,11 @@ class FsEntry:
         nb_dirs = 1
         for child in self.children():
             if child.is_directory:
-                _, nf, nd = child.save_dir(base_path=base_path)
+                _, nf, nd = child.save_dir(base_path=base_path, overwrite=overwrite)
                 nb_files += nf
                 nb_dirs += nd
             else:
-                child.save_file(base_path=base_path)
+                child.save_file(base_path=base_path, overwrite=overwrite)
                 nb_files += 1
         LOGGER.info(
             f"Saved {nb_files} file{'s' if nb_files > 1 else ''} and {nb_dirs} "
@@ -173,12 +174,14 @@ class FsEntry:
         self,
         file: str | Path | None = ...,
         base_path: str | Path | None = ...,
-        parents: bool = False,
+        parents: bool = ...,
+        overwrite: bool = ...,
     ) -> tuple[Path | None, int]:
         """Saves the contents of the file entry to the given file path,
         relative to the base path if provided.
         If `file` is None, the file name is inferred from the entry name.
         If `parents` is True, the parent path is included in the base path.
+        If `overwrite` is False, the file is not extracted if it already exists.
         Returns the file path and the number of bytes written."""
 
     @overload
@@ -191,11 +194,13 @@ class FsEntry:
         file: str | Path | BinaryIO | None = None,
         base_path: str | Path | None = None,
         parents: bool = False,
+        overwrite: bool = True,
     ) -> tuple[Path | None, int]:
         """Saves the contents of the file entry to the given file path or file-like object,
         relative to the base path if provided.
         If `file` is None, the file name is inferred from the entry name.
         If `parents` is True, the parent path is included in the base path.
+        If `overwrite` is False, the file is not extracted if it already exists.
         Returns the file path and the number of bytes written."""
         must_close = False
         if file is None:
@@ -211,6 +216,9 @@ class FsEntry:
                 base_path /= self.parent.path
             base_path.mkdir(exist_ok=True, parents=True)
             file = base_path / file
+            if not overwrite and file.exists():
+                LOGGER.info(f"File '{file}' already exists, skipping...")
+                return file, 0
             filepath: Path | None = file
             file = open(file, "wb")
             must_close = True

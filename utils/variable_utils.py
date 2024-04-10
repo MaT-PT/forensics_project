@@ -80,7 +80,7 @@ def get_username(path: str | PurePath) -> str | None:
     `\\Users\\foo\\NTUSER.dat` and `/home/foo/.profile`."""
     if isinstance(path, str):
         path = PurePath(path)
-    if (path.is_relative_to("Users") or path.is_relative_to("home")) and len(path.parts) > 1:
+    if len(path.parts) > 1 and (path.is_relative_to("Users") or path.is_relative_to("home")):
         return path.parts[1]
     if path.is_relative_to("root"):
         return "root"
