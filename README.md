@@ -16,6 +16,8 @@ It requires at least **Python 3.10** and the programs `mmls`, `fls`, and `icat` 
 - Extract all or specific files and directories (given directly from command-line and/or taken from a list in YAML files), with support for wildcards
 - Run tools on extracted files and directories, with support for variables, filters, optional arguments, output redirection, dependencies, and more
 - Customize tools and their options with a YAML file
+- Modular design, with the ability to add more tools and options easily
+- The underlying library, [`sleuthlib`](sleuthlib), can be used independently for other projects
 
 ### TL;DR
 
@@ -237,43 +239,43 @@ directories: <dict (optional): directories where the tools are located>
 
 #### Included tools
 
-- `regripper`: Extract information from Windows registry files.
+- `regripper`: Extract information from Windows registry files
   - Install the required binaries:
     - **Windows**: Download it from [https://github.com/keydet89/RegRipper3.0](https://github.com/keydet89/RegRipper3.0)
-      - Don't forget to adjust the path in the config file, or put it in `../tools/RegRipper3.0`.
-    - **Linux**: Install it with your package manager (eg. `sudo apt install regripper` on Debian/Ubuntu).
+      - Don't forget to adjust the path in the config file, or put it in `../tools/RegRipper3.0`
+    - **Linux**: Install it with your package manager (eg. `sudo apt install regripper` on Debian/Ubuntu)
   - Optional arguments:
-    - `plugin`: The plugin to use (eg. `userassist`, `recentdocs`, `usbstor`, etc.).
-    - `profile`: The profile to use (eg. `system`, `software`, `ntuser`, etc.).
+    - `plugin`: The plugin to use (eg. `userassist`, `recentdocs`, `usbstor`, etc.)
+    - `profile`: The profile to use (eg. `system`, `software`, `ntuser`, etc.)
     - `all`: Automatically run hive-specific plugins
     - `all_tln`: Automatically run hive-specific TLN plugins (timeline)
 
-- `srum_dump`: Extract information from the SRUM database.
+- `srum_dump`: Extract information from the SRUM database
   - Install the required binaries:
     - Download it from [https://github.com/MarkBaggett/srum-dump](https://github.com/MarkBaggett/srum-dump)
-      - Don't forget to adjust the path in the config file, or put it in `../tools/srum-dump`.
+      - Don't forget to adjust the path in the config file, or put it in `../tools/srum-dump`
   - Optional arguments:
-    - `reg_hive`: If SOFTWARE registry hive is provided then the names of the network profiles will be resolved.
-    - `xlsx_outfile`: Path to the XLS file that will be created.
-    - `xlsx_template`: The Excel template that specifies what data to extract from the SRUM database.
+    - `reg_hive`: If SOFTWARE registry hive is provided then the names of the network profiles will be resolved
+    - `xlsx_outfile`: Path to the XLS file that will be created
+    - `xlsx_template`: The Excel template that specifies what data to extract from the SRUM database
 
-- `evtx_dump`: Extract information from Windows event log files as XML or JSON.
+- `evtx_dump`: Extract information from Windows event log files as XML or JSON
   - Install the required binaries:
     - Download it from [https://github.com/omerbenamram/evtx](https://github.com/omerbenamram/evtx)
-      - Don't forget to adjust the path in the config file, or put `evtx_dump.exe` directly in `../tools/`.
-    - Alternatively, you can build it with `cargo install evtx` (see README on GitHub).
+      - Don't forget to adjust the path in the config file, or put `evtx_dump.exe` directly in `../tools/`
+    - Alternatively, you can build it with `cargo install evtx` (see README on GitHub)
   - Optional arguments:
-    - `format`: Sets the output format (default: `xml`). Possible values: `json`, `xml`, `jsonl`.
-    - `output`: Writes output to the file specified instead of stdout, errors will still be printed to stderr.
-    - `events`: When set, only the specified events (offset relative to file) will be output.
+    - `format`: Sets the output format (default: `xml`). Possible values: `json`, `xml`, `jsonl`
+    - `output`: Writes output to the file specified instead of stdout, errors will still be printed to stderr
+    - `events`: When set, only the specified events (offset relative to file) will be output
 
-- `print`: Print a text to STDOUT.
+- `print`: Print a text to STDOUT
   - Arguments:
-    - `text`: The text to print.
+    - `text`: The text to print
 
-- `print_newline`: Print a newline to STDOUT.
+- `print_newline`: Print a newline to STDOUT
 
-- `print_filename`: Print the name of the current file/directory to STDOUT.
+- `print_filename`: Print the name of the current file/directory to STDOUT
 
 - `print_filename_separated`: Print the name of the current file/directory to STDOUT, surrounded by separators:
 
@@ -283,17 +285,17 @@ directories: <dict (optional): directories where the tools are located>
   --------------------
   ```
 
-- `mkdir`: Create a directory, including all intermediate directories.
+- `mkdir`: Create a directory, including all intermediate directories
   - Arguments:
-    - `dir`: The directory to create.
+    - `dir`: The directory to create
 
-- `rm`: Delete a file.
+- `rm`: Delete a file
   - Arguments:
-    - `path`: Path to the file to delete.
+    - `path`: Path to the file to delete
 
-- `rmdir`: Delete a directory and all its contents, recursively.
+- `rmdir`: Delete a directory and all its contents, recursively
   - Arguments:
-    - `path`: Path to the directory to delete.
+    - `path`: Path to the directory to delete
 
 #### Examples
 
@@ -377,14 +379,14 @@ All variable and function names are UPPERCASE. Variables are substituted before 
 
 There are multiple predefined variables:
 
-- `$FILE`: The path to the extracted file or directory (eg. `extracted/Users/Test/Documents/file.pdf`).
-- `$OUTDIR`: The path to the output directory (eg. `extracted`).
-- `$PARENT`: The parent directory of the extracted file or directory (eg. `extracted/Users/Test/Documents`).
-- `$ENTRYPATH`: The path to the entry in the image (eg. `Users/Test/Documents/file.pdf`).
-- `$FILENAME`: The name of the extracted file or directory (eg. `file.pdf`).
-- `$USERNAME`: The username part of the file/dir path, if applicable (eg. `Test`). Assumes user profiles are in `/Users/*` on Windows and `/home/*` (and `/root`) on Linux.
-- `$TIME`: The current time with format `HH.MM.SS`.
-- `$DATE`: The current date with format `YYYY-MM-DD`.
+- `$FILE`: The path to the extracted file or directory (eg. `extracted/Users/Test/Documents/file.pdf`)
+- `$OUTDIR`: The path to the output directory (eg. `extracted`)
+- `$PARENT`: The parent directory of the extracted file or directory (eg. `extracted/Users/Test/Documents`)
+- `$ENTRYPATH`: The path to the entry in the image (eg. `Users/Test/Documents/file.pdf`)
+- `$FILENAME`: The name of the extracted file or directory (eg. `file.pdf`)
+- `$USERNAME`: The username part of the file/dir path, if applicable (eg. `Test`). Assumes user profiles are in `/Users/*` on Windows and `/home/*` (and `/root`) on Linux
+- `$TIME`: The current time with format `HH.MM.SS`
+- `$DATE`: The current date with format `YYYY-MM-DD`
 
 User-configured directories are available as variables as well, with the prefix `$DIR_`. For instance, if you have a config with `directories: { example: ../tools/example }`, you can use `$DIR_EXAMPLE` as a variable.
 
@@ -393,7 +395,7 @@ For example, if you call a tool with `extra: { arg1: 42, arg2: 2600 }`, `$ARG1` 
 
 There are also some predefined functions:
 
-- `${PATH:path/to/file}`: Converts the given path to the correct format for the current system (eg. `extracted\Users\Test\Documents\file.pdf` on Windows, `extracted/Users/Test/Documents/file.pdf` on Linux).
+- `${PATH:path/to/file}`: Converts the given path to the correct format for the current system (eg. `extracted\Users\Test\Documents\file.pdf` on Windows, `extracted/Users/Test/Documents/file.pdf` on Linux)
   Useful for tools that require paths in a specific format.
 
   ```yaml
@@ -401,7 +403,7 @@ There are also some predefined functions:
   cmd: echo "[$DATE $TIME] ${PATH:$FILE}"
   ```
 
-- `${REPLACE:str,old,new}`: Replaces all occurrences of `old` with `new` in `str`.
+- `${REPLACE:str,old,new}`: Replaces all occurrences of `old` with `new` in `str`
 
 It is easy to create more functions by adding them to the [`VAR_FUNCTIONS`](utils/variable_utils.py#L17) dictionary.
 A function is a callable that takes an arbitrary number of string arguments and returns a string.
