@@ -16,6 +16,7 @@ class VarFunction(Protocol):
 
 VAR_FUNCTIONS: dict[str, VarFunction] = {
     "PATH": lambda *args: str(Path(args[0])),
+    "REPLACE": lambda *args: args[0].replace(args[1], args[2]),
 }
 
 
@@ -36,8 +37,10 @@ def sub_vars_loop(s: str, var_dict: dict[str, str], upper: bool = True, max_iter
 def sub_funcs(s: str, upper: bool = True) -> str:
     """Runs functions of the form of `${FUNC_NAME:arg1,arg2,...}`."""
     while True:
-        if (start := s.find("${")) == -1:
+        # Find the last function call in the string (to handle nested calls correctly)
+        if (start := s.rfind("${")) == -1:
             break
+        # Find the corresponding closing bracket
         if (end := s.find("}", start)) == -1:
             LOGGER.warning(f"Unterminated function call: {s[start:]}")
             break

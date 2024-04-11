@@ -391,7 +391,7 @@ User-configured directories are available as variables as well, with the prefix 
 In addition, when calling a tool, extra arguments create variables that can be used in the command or arguments.
 For example, if you call a tool with `extra: { arg1: 42, arg2: 2600 }`, `$ARG1` and `$ARG2` will be substituted by their respective values.
 
-There is also a predefined function:
+There are also some predefined functions:
 
 - `${PATH:path/to/file}`: Converts the given path to the correct format for the current system (eg. `extracted\Users\Test\Documents\file.pdf` on Windows, `extracted/Users/Test/Documents/file.pdf` on Linux).
   Useful for tools that require paths in a specific format.
@@ -400,6 +400,8 @@ There is also a predefined function:
   # Example usage:
   cmd: echo "[$DATE $TIME] ${PATH:$FILE}"
   ```
+
+- `${REPLACE:str,old,new}`: Replaces all occurrences of `old` with `new` in `str`.
 
 It is easy to create more functions by adding them to the [`VAR_FUNCTIONS`](utils/variable_utils.py#L17) dictionary.
 A function is a callable that takes an arbitrary number of string arguments and returns a string.

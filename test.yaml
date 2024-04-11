@@ -9,8 +9,11 @@ files:
     tool:
       cmd: "echo 'Test USERNAME: $FILE - $USERNAME'"
   - path: $MFT
-    tool:
-      cmd: "echo 'Test overwrite: $FILE'"
+    tools:
+      - "echo 'Test overwrite: $FILE'"
+      - "echo 'Test PATH: ${PATH:$FILE} ${PATH:/path/test/file.ext} ${PATH:\\path\\test\\file.ext}'"
+      - "echo 'Test REPLACE: ${REPLACE:$FILE,F,_test_}'"
+      - "echo 'Test nested: ${REPLACE:${PATH:/${REPLACE:abcaaea,a,_test_}/def/ghi},e,[$FILENAME]}'"
     overwrite: no
   - path: Users/*/Desktop/*
     tools:
