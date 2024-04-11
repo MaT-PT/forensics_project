@@ -168,9 +168,17 @@ def main() -> None:
         sector_size=args.sector_size,
         offset=args.offset,
     )
-    if args.ls and args.file is None and args.file_list is None:
-        print(res_mmls)
-        return
+    if args.file is None and args.file_list is None:
+        if args.part_num is None and not args.ask_part:
+            if not args.ls:
+                print_warning(
+                    "No partition and no files given, only showing partition information:"
+                )
+            print(res_mmls)
+            return
+        if args.ls:
+            print_warning("No files to list, showing all files in /")
+            file_list.append("*")
 
     partitions = res_mmls.filesystem_partitions()
 
