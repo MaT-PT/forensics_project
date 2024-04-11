@@ -26,7 +26,15 @@ It requires at least **Python 3.10** and the programs `mmls`, `fls`, and `icat` 
 - Run the program with the default config and file list/tools:
 
   ```sh
+  # Will extract registry hives, events and logs, and other system files
+  # and run regripper, srum-dump, and evtx_dump on them
   python3 main.py image.E01 -F files.yaml
+
+  # Will extract browser artifacts (history, cookies, etc.) and other user files
+  python3 main.py image.E01 -F files_browsers.yaml
+
+  # Both can be combined to do everything at once
+  python3 main.py image.E01 -F files.yaml -F files_browsers.yaml
   ```
 
 - Find the extracted files in `extracted/`, with the output of each tool in `extracted/_<tool_name>/`
