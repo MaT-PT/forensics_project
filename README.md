@@ -1,4 +1,4 @@
-# Forensics Project 2600
+# Forensics Project 2600 <!-- omit in toc -->
 
 ## Description
 
@@ -7,24 +7,46 @@ This is an automated forensic analysis tool that can be used to extract files an
 It is written in Python and uses *The Sleuth Kit* (TSK) behind the scenes. It can run on Windows, Linux, and MacOS.
 
 This tool was written using TSK version 4.12.1.
+It requires at least **Python 3.10** and the programs `mmls`, `fls`, and `icat` from TSK.
+
+### Features
+
+- List partitions in a disk image and files in them
+- Automatically detect NTFS partitions
+- Extract all or specific files and directories (given directly from command-line and/or taken from a list in YAML files), with support for wildcards
+- Run tools on extracted files and directories, with support for variables, filters, optional arguments, output redirection, dependencies, and more
+- Customize tools and their options with a YAML file
+
+### TL;DR
+
+- Make sure you use **Python ≥3.10** and have the required TSK binaries in PATH (or specify their location with `-T`)
+- Install the required tools (`regripper`, `srum-dump`, `evtx_dump`) and set their paths in the config file
+- Run the program with the default config and file list/tools:
+
+  ```sh
+  python3 main.py image.E01 -F files.yaml
+  ```
+
+- Find the extracted files in `extracted/`, with the output of each tool in `extracted/_<tool_name>/`
 
 ## Table of contents <!-- omit in toc -->
 
-- [Forensics Project 2600](#forensics-project-2600)
-  - [Description](#description)
-  - [Installation](#installation)
-  - [Usage](#usage)
-    - [Breaking down the options](#breaking-down-the-options)
-    - [Examples](#examples)
-  - [YAML files](#yaml-files)
-    - [Configuration file](#configuration-file)
-      - [Structure](#structure)
-      - [Included tools](#included-tools)
-      - [Examples](#examples-1)
-    - [File list](#file-list)
-      - [Structure](#structure-1)
-      - [Examples](#examples-2)
-    - [Variables](#variables)
+- [Description](#description)
+  - [Features](#features)
+  - [TL;DR](#tldr)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Breaking down the options](#breaking-down-the-options)
+  - [Examples](#examples)
+- [YAML files](#yaml-files)
+  - [Configuration file](#configuration-file)
+    - [Structure](#structure)
+    - [Included tools](#included-tools)
+    - [Examples](#examples-1)
+  - [File list](#file-list)
+    - [Structure](#structure-1)
+    - [Examples](#examples-2)
+  - [Variables](#variables)
 
 ## Installation
 
@@ -175,7 +197,7 @@ Extraction options:
 
 Configuration is stored in a YAML file (default is `config.yaml`). It specifies a list of tools that can be used on extracted files, as well as the paths where the tool binaries are located.
 
-Anywhere a path, command, or argument is specified, you can use variables in the form `$VAR_NAME`, or predefined functions in the form `${FUNC_NAME:arg1,arg2,...}`.
+Anywhere a path, command, or argument is specified, you can use variables.
 See the [Variables](#variables) section below for more information.
 
 #### Structure
@@ -293,7 +315,7 @@ For instance, the following paths are all equivalent:
 
 Wildcards are also allowed (eg. `Users/*/Documents/*.pdf`).
 
-In tools config, anywhere a path, command, or argument is specified, you can use variables in the form `$VAR_NAME`, or predefined functions in the form `${FUNC_NAME:arg1,arg2,...}`.
+In tools config, anywhere a path, command, or argument is specified, you can use variables.
 See the [Variables](#variables) section below for more information.
 
 #### Structure
@@ -346,3 +368,38 @@ files: <list (required): list of files and directories to extract>
 See [`files.yaml`](files.yaml) for examples.
 
 ### Variables
+
+In the configuration and file list files (only for tools, not file paths), you can use variables in the form `$VAR_NAME`, or functions in the form `${FUNC_NAME:arg1,arg2,...}`.
+
+All variable and function names are UPPERCASE. Variables are substituted before functions.
+
+> There is no way (yet) to escape the `$` character, but it is only interpreted if it is followed by a valid variable or function name, so it should not be a problem in most cases (eg. `$MFT` can be used as long as there is no variable named `MFT`).
+
+There are multiple predefined variables:
+
+- `$FILE`: The path to the extracted file or directory (eg. `extracted/Users/Test/Documents/file.pdf`).
+- `$OUTDIR`: The path to the output directory (eg. `extracted`).
+- `$PARENT`: The parent directory of the extracted file or directory (eg. `extracted/Users/Test/Documents`).
+- `$ENTRYPATH`: The path to the entry in the image (eg. `Users/Test/Documents/file.pdf`).
+- `$FILENAME`: The name of the extracted file or directory (eg. `file.pdf`).
+- `$USERNAME`: The username part of the file/dir path, if applicable (eg. `Test`). Assumes user profiles are in `/Users/*` on Windows and `/home/*` (and `/root`) on Linux.
+- `$TIME`: The current time with format `HH.MM.SS`.
+- `$DATE`: The current date with format `YYYY-MM-DD`.
+
+User-configured directories are available as variables as well, with the prefix `$DIR_`. For instance, if you have a config with `directories: { example: ../tools/example }`, you can use `$DIR_EXAMPLE` as a variable.
+
+In addition, when calling a tool, extra arguments create variables that can be used in the command or arguments.
+For example, if you call a tool with `extra: { arg1: 42, arg2: 2600 }`, `$ARG1` and `$ARG2` will be substituted by their respective values.
+
+There is also a predefined function:
+
+- `${PATH:path/to/file}`: Converts the given path to the correct format for the current system (eg. `extracted\Users\Test\Documents\file.pdf` on Windows, `extracted/Users/Test/Documents/file.pdf` on Linux).
+  Useful for tools that require paths in a specific format.
+
+  ```yaml
+  # Example usage:
+  cmd: echo "[$DATE $TIME] ${PATH:$FILE}"
+  ```
+
+It is easy to create more functions by adding them to the [`VAR_FUNCTIONS`](utils/variable_utils.py#L17) dictionary.
+A function is a callable that takes an arbitrary number of string arguments and returns a string.
