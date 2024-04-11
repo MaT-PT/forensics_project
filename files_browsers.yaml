@@ -1,0 +1,43 @@
+# Artifacts related to browsers and other user data
+
+files:
+  # Recent files
+  - Users/*/AppData/Roaming/Microsoft/Windows/Recent
+
+  # Required for offline decryption
+  - Users/*/AppData/Roaming/Microsoft/Protect
+
+  # Microsoft Edge
+  - Users/*/AppData/Local/Packages/Microsoft.MicrosoftEdge*
+
+  # Edge Chromium
+  - Users/*/AppData/Local/Microsoft/Edge/User Data
+
+  # Internet Explorer
+  - Users/*/AppData/Local/Microsoft/Internet Explorer
+  - Users/*/AppData/LocalLow/Microsoft/Internet Explorer
+  - Users/*/AppData/Roaming/Microsoft/Internet Explorer
+  - Users/*/AppData/Local/Microsoft/Windows/Cookies
+  - Users/*/AppData/Local/Microsoft/Windows/History
+  - Users/*/AppData/Local/Microsoft/Windows/IEDownloadHistory
+  - Users/*/AppData/Local/Microsoft/Windows/INetCache
+  - Users/*/AppData/Local/Microsoft/Windows/INetCookies
+  - Users/*/AppData/Local/Microsoft/Windows/WebCache
+
+  # Google Chrome
+  - Users/*/AppData/Local/Google/Chrome
+
+  # Mozilla Firefox
+  - Users/*/AppData/Roaming/Mozilla/Firefox # User profiles
+  - Users/*/AppData/Local/Mozilla/Firefox # Cache
+
+  # Opera
+  - Users/*/AppData/Roaming/Opera Software
+  - Users/*/AppData/Local/Opera Software
+
+  # Brave
+  - Users/*/AppData/Local/BraveSoftware
+
+  # Vivaldi
+  - Users/*/AppData/Local/Vivaldi
+  - Users/*/.vivaldi_reporting_data*
