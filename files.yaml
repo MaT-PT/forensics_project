@@ -1,3 +1,5 @@
+# Registry hives, events and logs, and other system files
+
 files:
   - $MFT
 
@@ -321,10 +323,17 @@ files:
           output: $OUTDIR/_evtx_dump/$FILENAME.xml
         filter: "*.evtx"
 
+  - Windows/*.log
   - Windows/INF/setupapi.dev.log
-  - Windows/System32/LogFiles/*
+  - Windows/System32/LogFiles
   - Windows/Tasks/*
   - Windows/System32/drivers/etc/hosts
-  - Windows/security/audit/*
+  - Windows/security/audit
+  - Windows/security/logs
+  - Windows/System32/WDI
+  - Windows/System32/LogFiles
+  - Windows/System32/SleepStudy
+  - ProgramData/Microsoft/Windows/PowerEfficiency Diagnostics
+  - Windows/ServiceProfiles/NetworkService/AppData/Local/Microsoft/Windows/DeliveryOptimization/Logs
   - Windows/Minidump*.dmp
   - Windows/Memory.dmp
