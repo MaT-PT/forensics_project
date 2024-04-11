@@ -8,6 +8,24 @@ It is written in Python and uses *The Sleuth Kit* (TSK) behind the scenes. It ca
 
 This tool was written using TSK version 4.12.1.
 
+## Table of contents <!-- omit in toc -->
+
+- [Forensics Project 2600](#forensics-project-2600)
+  - [Description](#description)
+  - [Installation](#installation)
+  - [Usage](#usage)
+    - [Breaking down the options](#breaking-down-the-options)
+    - [Examples](#examples)
+  - [YAML files](#yaml-files)
+    - [Configuration file](#configuration-file)
+      - [Structure](#structure)
+      - [Included tools](#included-tools)
+      - [Examples](#examples-1)
+    - [File list](#file-list)
+      - [Structure](#structure-1)
+      - [Examples](#examples-2)
+    - [Variables](#variables)
+
 ## Installation
 
 1. Install or download *The Sleuth Kit* (TSK)
@@ -17,10 +35,11 @@ This tool was written using TSK version 4.12.1.
 2. Install Python 3
 3. Clone this repository
 4. Install the required Python packages: `pip install -r requirements.txt` (or `pip install -r requirements-dev.txt` if you want to contribute to the project)
-5. Install or download the required tools (eg. `regripper`, `srum-dump`, `evtx_dump`, etc.) that you want to run on the extracted files
+5. Install or download the required binaries for tools (eg. `regripper`, `srum-dump`, `evtx_dump`, etc.) that you want to run on the extracted files
+    - Make sure the paths to the tool binaries are correctly set in the config file (see below)
 6. Run the tool:
-    - **Windows**: `python3 main.py` (or `py main.py` depending on your Python installation)
-    - **Linux/MacOS**: `./main.py`
+    - **Windows**: `python3 main.py [image_file] [options]` (or `py main.py [image_file] [options]` depending on your Python installation)
+    - **Linux/MacOS**: `./main.py [image_file] [options]`
 
 ## Usage
 
@@ -77,7 +96,15 @@ Extraction options:
 
 ### Breaking down the options
 
-- `image` (only positional argument): The image file(s) to analyze. They are passed as-is to the TSK tools, so they can be in any supported format (eg. raw, EWF, VMDK, etc.).
+> Note: For all options that can take multiple values (`-p`, `-f`, `-F`), you can specify them multiple times, or separate them with spaces (eg. `-p 1 -p 2 -p 3` or `-p 1 2 3`). The same goes for `-v` (eg. `-v -v` or `-vv`).
+
+- Positional arguments:
+  - `image`: One or more image file(s) to analyze. They are passed as-is to the TSK tools, so they can be in any supported format (eg. raw, EWF, VMDK, etc.). Specifying multiple files is only useful for split images (eg. `image.E01, image.E02, …`). Doing so for different images is not supported and will NOT allow you to extract files from multiple images at once. TSK will try to detect the other parts of a split image automatically if they end with sequential numbers (eg. `.E01, .E02, …`, `.001, .002, …`).
+
+- General options:
+  - `-h, --help`: Show the help message and exit.
+  - `-s, --silent`: Suppress informative output from script and STDOUT from tools (warnings/errors and STDERR will still be printed).
+  - `-v, --verbose`: Verbose output (use once for INFO level messages, twice for DEBUG level).
 
 - Options related to TSK:
   - `-T, --tsk-path`: The directory where the TSK binaries are installed. If not specified, the script will search for them in the PATH.
@@ -90,7 +117,7 @@ Extraction options:
 - Options for extraction:
   - `-p, --part-num`: The partition number(s) (slots) to use. If not specified, all NTFS partitions will be used (exclusive with `-P`).
   - `-P, --ask-part`: List data partitions and ask for which one(s) to use (exclusive with `-p`).
-  - `-l, --list`: If no file is specified, list all partitions; otherwise, list the given files (exclusive with `-a`).
+  - `-l, --list`: If no file or file list is specified, list all partitions; otherwise, list the given files (exclusive with `-a`).
   - `-a, --save-all`: Save all files and directories in the partition, do not run any tool (exclusive with `-l`).
   - `-f, --file`: The file(s)/dir(s) to extract (no tools will be run on them).
   - `-F, --file-list`: YAML file(s) containing the file(s)/dir(s) to extract, with tools to use and options (see below for more information).
@@ -100,10 +127,46 @@ Extraction options:
 
 ### Examples
 
-- Extract all files and directories from all the NTFS partition in the image `image.E01` and save them in the `extracted` directory (or `extracted_0`, `extracted_1`, etc. if there are several partitions):
+- Extract all files and directories from all the NTFS partition in the image `image.E01` and save them in the `extracted_all` directory (or `extracted_all_0`, `extracted_all_1`, etc. if there are several partitions):
 
   ```sh
-  ./main.py image.E01 -a
+  ./main.py image.E01 -a -d extracted_all
+  ```
+
+- List all partitions and exit:
+
+  ```sh
+  ./main.py image.E01 -l
+  ```
+
+- Extract `NTUSER.DAT` for all users from the second partition:
+
+  ```sh
+  ./main.py image.E01 -p 2 -f "Users/*/NTUSER.DAT"
+  ```
+
+- Extract files and directories from the second and fourth partitions as specified in `files.yaml`:
+
+  ```sh
+  ./main.py image.E01 -p 2 4 -F files.yaml
+  ```
+
+- Ask for which partitions to use, and extract files as specified in `test1.yaml` and `test2.yaml`, using config from `config_test.yaml`:
+
+  ```sh
+  ./main.py image.E01 -P -F test1.yaml -F test2.yaml -c config_test.yaml
+  ```
+
+- List files and directories that match `*.sys` (in the root directory) and `Users/*/Desktop/*.lnk` from the NTFS partitions, as well as those listed in `files.yaml`:
+
+  ```sh
+  ./main.py image.E01 -f "*.sys" "Users/*/Desktop/*.lnk" -F files.yaml
+  ```
+
+- (On Windows) Extract the `.ssh` directory for all users (and root) in the second partition (using case-sensitive search as it is a Linux image), specifying where to find the TSK tools and that it is a RAW image with a GUID partition table, and save the output in the `extracted_linux` directory:
+
+  ```powershell
+  python3 main.py linux.img -T "..\tools\sleuthkit-4.12.1-win32\bin" -i raw -t gpt -p 2 -S -f "/home/*/.ssh" "/root/.ssh" -d extracted_linux
   ```
 
 ## YAML files
@@ -113,7 +176,7 @@ Extraction options:
 Configuration is stored in a YAML file (default is `config.yaml`). It specifies a list of tools that can be used on extracted files, as well as the paths where the tool binaries are located.
 
 Anywhere a path, command, or argument is specified, you can use variables in the form `$VAR_NAME`, or predefined functions in the form `${FUNC_NAME:arg1,arg2,...}`.
-See the `Variables` section below for more information.
+See the [Variables](#variables) section below for more information.
 
 #### Structure
 
@@ -122,7 +185,7 @@ tools: <list (required): list of tools>
   - name: <string (required): tool name>
 
     cmd: <string (required): command to execute>
-    == or ==
+    ### or ###
     cmd: <dict (required): command to execute, depending on the system (at least one is required)>
       windows: <string (optional): command to execute on Windows>
       linux: <string (optional): command to execute on Linux>
@@ -231,14 +294,14 @@ For instance, the following paths are all equivalent:
 Wildcards are also allowed (eg. `Users/*/Documents/*.pdf`).
 
 In tools config, anywhere a path, command, or argument is specified, you can use variables in the form `$VAR_NAME`, or predefined functions in the form `${FUNC_NAME:arg1,arg2,...}`.
-See the `Variables` section below for more information.
+See the [Variables](#variables) section below for more information.
 
 #### Structure
 
 ```yaml
 files: <list (required): list of files and directories to extract>
   - <string (required): file or directory path; no tools will be run on it>
-  == or ==
+  ### or ###
   - path: <string (required): file or directory path>
 
     tool: <dict (optional): settings for the tool to run on the extracted file/dir>
@@ -255,7 +318,7 @@ files: <list (required): list of files and directories to extract>
       filter: <string (optional): only run the tool if the file matches the filter (eg. `*.pdf`, `*.evtx`, etc.)>
 
       output: <string (optional): redirect STDOUT to the given file (if not specified, the output will be printed to the console)>
-      == or ==
+      ### or ###
       output: <dict (optional): output file settings>
         path: <string (required): path to the output file>
         append: <bool (optional): whether to append to the output file (default is False, ie. overwrite)>
