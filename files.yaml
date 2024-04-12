@@ -92,207 +92,142 @@ files:
 
   - path: Users/*/NTUSER.DAT
     tools:
-      - name: rm
-        extra:
-          path: $OUTDIR/_regripper/mp2.txt
-        run_once: yes
       - name: print_filename_separated
         output:
-          path: $OUTDIR/_regripper/mp2.txt
-          append: yes
+          path: $OUTDIR/_regripper/$USERNAME/mp2.txt
       - name: regripper
         extra:
           plugin: mp2
         output:
-          path: $OUTDIR/_regripper/mp2.txt
+          path: $OUTDIR/_regripper/$USERNAME/mp2.txt
           append: yes
 
-      - name: rm
-        extra:
-          path: $OUTDIR/_regripper/userassist.txt
-        run_once: yes
       - name: print_filename_separated
         output:
-          path: $OUTDIR/_regripper/userassist.txt
-          append: yes
+          path: $OUTDIR/_regripper/$USERNAME/userassist.txt
       - name: regripper
         extra:
           plugin: userassist
         output:
-          path: $OUTDIR/_regripper/userassist.txt
+          path: $OUTDIR/_regripper/$USERNAME/userassist.txt
           append: yes
 
-      - name: rm
-        extra:
-          path: $OUTDIR/_regripper/recentdocs.txt
-        run_once: yes
       - name: print_filename_separated
         output:
-          path: $OUTDIR/_regripper/recentdocs.txt
-          append: yes
+          path: $OUTDIR/_regripper/$USERNAME/recentdocs.txt
       - name: regripper
         extra:
           plugin: recentdocs
         output:
-          path: $OUTDIR/_regripper/recentdocs.txt
+          path: $OUTDIR/_regripper/$USERNAME/recentdocs.txt
           append: yes
 
-      - name: rm
-        extra:
-          path: $OUTDIR/_regripper/all_ntuser.txt
-        run_once: yes
       - name: print_filename_separated
         output:
-          path: $OUTDIR/_regripper/all_ntuser.txt
-          append: yes
+          path: $OUTDIR/_regripper/$USERNAME/all_ntuser.txt
       - name: regripper
         extra:
           all: on
         output:
-          path: $OUTDIR/_regripper/all_ntuser.txt
+          path: $OUTDIR/_regripper/$USERNAME/all_ntuser.txt
           append: yes
 
-      - name: rm
-        extra:
-          path: $OUTDIR/_regripper/all_ntuser_tln.txt
-        run_once: yes
       - name: print_filename_separated
         output:
-          path: $OUTDIR/_regripper/all_ntuser_tln.txt
-          append: yes
+          path: $OUTDIR/_regripper/$USERNAME/all_ntuser_tln.txt
       - name: regripper
         extra:
           all_tln: on
         output:
-          path: $OUTDIR/_regripper/all_ntuser_tln.txt
+          path: $OUTDIR/_regripper/$USERNAME/all_ntuser_tln.txt
           append: yes
 
   - Users/*/NTUSER.DAT.LOG*
 
   - path: Users/*/AppData/Local/Microsoft/Windows/UsrClass.dat
     tools:
-      - name: rm
-        extra:
-          path: $OUTDIR/_regripper/shellbags.txt
-        run_once: yes
       - name: print_filename_separated
         output:
-          path: $OUTDIR/_regripper/shellbags.txt
-          append: yes
+          path: $OUTDIR/_regripper/$USERNAME/shellbags.txt
       - name: regripper
         extra:
           plugin: shellbags
         output:
-          path: $OUTDIR/_regripper/shellbags.txt
+          path: $OUTDIR/_regripper/$USERNAME/shellbags.txt
           append: yes
 
-      - name: rm
-        extra:
-          path: $OUTDIR/_regripper/all_usrclass.txt
-        run_once: yes
       - name: print_filename_separated
         output:
-          path: $OUTDIR/_regripper/all_usrclass.txt
-          append: yes
+          path: $OUTDIR/_regripper/$USERNAME/all_usrclass.txt
       - name: regripper
         extra:
           all: on
         output:
-          path: $OUTDIR/_regripper/all_usrclass.txt
+          path: $OUTDIR/_regripper/$USERNAME/all_usrclass.txt
           append: yes
 
-      - name: rm
-        extra:
-          path: $OUTDIR/_regripper/all_usrclass_tln.txt
-        run_once: yes
       - name: print_filename_separated
         output:
-          path: $OUTDIR/_regripper/all_usrclass_tln.txt
-          append: yes
+          path: $OUTDIR/_regripper/$USERNAME/all_usrclass_tln.txt
       - name: regripper
         extra:
           all_tln: on
         output:
-          path: $OUTDIR/_regripper/all_usrclass_tln.txt
+          path: $OUTDIR/_regripper/$USERNAME/all_usrclass_tln.txt
           append: yes
 
   - Users/*/AppData/Local/Microsoft/Windows/UsrClass.dat.LOG*
 
   - path: Windows/ServiceProfiles/*/NTUSER.DAT
     tools:
-      - name: rm
-        extra:
-          path: $OUTDIR/_regripper/serviceprofiles_mp2.txt
-        run_once: yes
       - name: print_filename_separated
         output:
-          path: $OUTDIR/_regripper/serviceprofiles_mp2.txt
-          append: yes
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/mp2.txt
       - name: regripper
         extra:
           plugin: mp2
         output:
-          path: $OUTDIR/_regripper/serviceprofiles_mp2.txt
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/mp2.txt
           append: yes
 
-      - name: rm
-        extra:
-          path: $OUTDIR/_regripper/serviceprofiles_userassist.txt
-        run_once: yes
       - name: print_filename_separated
         output:
-          path: $OUTDIR/_regripper/serviceprofiles_userassist.txt
-          append: yes
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/userassist.txt
       - name: regripper
         extra:
           plugin: userassist
         output:
-          path: $OUTDIR/_regripper/serviceprofiles_userassist.txt
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/userassist.txt
           append: yes
 
-      - name: rm
-        extra:
-          path: $OUTDIR/_regripper/serviceprofiles_recentdocs.txt
-        run_once: yes
       - name: print_filename_separated
         output:
-          path: $OUTDIR/_regripper/serviceprofiles_recentdocs.txt
-          append: yes
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/recentdocs.txt
       - name: regripper
         extra:
           plugin: recentdocs
         output:
-          path: $OUTDIR/_regripper/serviceprofiles_recentdocs.txt
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/recentdocs.txt
           append: yes
 
-      - name: rm
-        extra:
-          path: $OUTDIR/_regripper/serviceprofiles_all_ntuser.txt
-        run_once: yes
       - name: print_filename_separated
         output:
-          path: $OUTDIR/_regripper/serviceprofiles_all_ntuser.txt
-          append: yes
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/all_ntuser.txt
       - name: regripper
         extra:
           all: on
         output:
-          path: $OUTDIR/_regripper/serviceprofiles_all_ntuser.txt
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/all_ntuser.txt
           append: yes
 
-      - name: rm
-        extra:
-          path: $OUTDIR/_regripper/serviceprofiles_all_ntuser_tln.txt
-        run_once: yes
       - name: print_filename_separated
         output:
-          path: $OUTDIR/_regripper/serviceprofiles_all_ntuser_tln.txt
-          append: yes
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/all_ntuser_tln.txt
       - name: regripper
         extra:
           all_tln: on
         output:
-          path: $OUTDIR/_regripper/serviceprofiles_all_ntuser_tln.txt
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/all_ntuser_tln.txt
           append: yes
 
   - Windows/ServiceProfiles/*/NTUSER.DAT.LOG*

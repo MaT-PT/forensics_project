@@ -85,6 +85,8 @@ def get_username(path: str | PurePath) -> str | None:
         path = PurePath(path)
     if len(path.parts) > 1 and (path.is_relative_to("Users") or path.is_relative_to("home")):
         return path.parts[1]
+    if len(path.parts) > 2 and path.is_relative_to("Windows/ServiceProfiles"):
+        return path.parts[2]
     if path.is_relative_to("root"):
         return "root"
     return None
