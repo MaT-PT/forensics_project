@@ -1,0 +1,43 @@
+name: Cached Download and Test
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Cache Test File
+      uses: actions/cache@v4
+      with:
+        path: |
+          DESKTOP-E01.zip
+        key: ${{ runner.os }}-largefile
+        restore-keys: |
+          ${{ runner.os }}-largefile
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip sleuthkit regripper
+        wget -O /usr/local/bin/evtx_dump https://github.com/omerbenamram/evtx/releases/download/v0.8.2/evtx_dump-v0.8.2-x86_64-unknown-linux-gnu
+        chmod +x /usr/local/bin/evtx_dump
+
+    - name: Install Python Dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Download Large Test File
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        curl -L "https://dfirmadness.com/case001/DESKTOP-E01.zip" -o DESKTOP-E01.zip
+
+    - name: Unzip the Test File
+      run: unzip DESKTOP-E01.zip -d images
+
+    - name: Run Test
+      run: |
+        docker-compose -f tests/docker-compose.yml up --build --exit-code-from test

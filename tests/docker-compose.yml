@@ -1,0 +1,4 @@
+services:
+  test:
+    build: .
+    command: ./main.py -F=assets/files4.yaml images/20200918_0417_DESKTOP-SDN1RPT.E01
