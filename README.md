@@ -15,7 +15,9 @@ It requires at least **Python 3.10** and the programs `mmls`, `fls`, and `icat` 
 - Automatically detect NTFS partitions
 - Extract all or specific files and directories (given directly from command-line and/or taken from a list in YAML files), with support for wildcards
 - Run tools on extracted files and directories, with support for variables, filters, optional arguments, output redirection, dependencies, and more
-- Fast and efficient: caches calls to TSK tools so no duplicate calls are made
+- Host system-agnostic: works on Windows, Linux, and MacOS, as long as TSK is installed
+- Windows and Unix partition systems supported
+- Fast and efficient: cache calls to TSK tools so no duplicate calls are made
 - Customize tools and their options with a YAML file
 - Modular design, with the ability to add more tools and options easily
 - The underlying library, [`sleuthlib`](sleuthlib), can be used independently for other projects
