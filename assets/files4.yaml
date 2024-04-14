@@ -232,6 +232,7 @@ files:
 
   - Windows/ServiceProfiles/*/NTUSER.DAT.LOG*
 
+  # Remove this block cause we can't have srum_dump tool inside containers cause it's a GUI tool
   # - path: Windows/System32/sru/SRUDB.dat
   #   tools:
   #     - name: mkdir
