@@ -1,0 +1,20 @@
+tools:
+  - name: evtx_dump
+    cmd:
+      windows: '"${PATH:$DIR_EVTX_DUMP/evtx_dump.exe}"'
+      linux: evtx_dump
+    args: '"$FILE"'
+    args_extra:
+      format: --format $FORMAT
+      output: --output "$OUTPUT" --no-confirm-overwrite
+      events: --events $EVENTS
+  - name: mkdir
+    cmd:
+      windows: cmd /X /C md
+      linux: mkdir -p
+    args_extra:
+      dir: '"${PATH:$DIR}"'
+    allow_fail: yes
+
+
+

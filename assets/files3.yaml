@@ -1,0 +1,13 @@
+files:
+  - path: Windows/System32/winevt/Logs/*
+    tools:
+      - name: mkdir
+        extra:
+          dir: $OUTDIR/_evtx_dump
+        run_once: yes
+      - name: evtx_dump
+        extra:
+          format: xml
+          output: $OUTDIR/_evtx_dump/$FILENAME.xml
+        filter: "*.evtx"
+

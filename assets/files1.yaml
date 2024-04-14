@@ -1,0 +1,7 @@
+files:
+  # Absolute path
+  - "Users\\Default\\NTUSER.DAT.LOG1"
+  # Absolute path with wildcard
+  - "Users\\*\\NTUSER.DAT"
+  # Non existent file
+  - "Users\\Laurent\\unknow.txt"
