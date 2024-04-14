@@ -1,6 +1,6 @@
 name: Cached Download and Test
 
-on: [push]
+on: [release]
 
 jobs:
   test:
