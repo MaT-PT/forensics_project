@@ -1,3 +1,4 @@
 -r requirements.txt
 types-colorama
 types-PyYAML
+pytest
