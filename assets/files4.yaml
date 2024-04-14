@@ -1,0 +1,274 @@
+# Registry hives, events and logs, and other system files
+
+files:
+  - $MFT
+
+  - path: Windows/System32/config/SAM
+    tools:
+      - name: regripper
+        extra:
+          all: on
+        output:
+          path: $OUTDIR/_regripper/all_sam.txt
+      - name: regripper
+        extra:
+          all_tln: on
+        output:
+          path: $OUTDIR/_regripper/all_sam_tln.txt
+
+  - Windows/System32/config/SAM.LOG*
+
+  - path: Windows/System32/config/SECURITY
+    tools:
+      - name: regripper
+        extra:
+          all: on
+        output:
+          path: $OUTDIR/_regripper/all_security.txt
+      - name: regripper
+        extra:
+          all_tln: on
+        output:
+          path: $OUTDIR/_regripper/all_security_tln.txt
+
+  - Windows/System32/config/SECURITY.LOG*
+
+  - path: Windows/System32/config/SOFTWARE
+    tools:
+      - name: regripper
+        extra:
+          plugin: networklist
+        output: $OUTDIR/_regripper/networklist.txt
+      - name: regripper
+        extra:
+          all: on
+        output:
+          path: $OUTDIR/_regripper/all_software.txt
+      - name: regripper
+        extra:
+          all_tln: on
+        output:
+          path: $OUTDIR/_regripper/all_software_tln.txt
+
+  - Windows/System32/config/SOFTWARE.LOG*
+
+  - path: Windows/System32/config/SYSTEM
+    tools:
+      - name: regripper
+        extra:
+          plugin: usbstor
+        output: $OUTDIR/_regripper/usbstor.txt
+      - name: regripper
+        extra:
+          plugin: mountdev
+        output: $OUTDIR/_regripper/mountdev.txt
+      - name: regripper
+        extra:
+          all: on
+        output:
+          path: $OUTDIR/_regripper/all_system.txt
+      - name: regripper
+        extra:
+          all_tln: on
+        output:
+          path: $OUTDIR/_regripper/all_system_tln.txt
+
+  - Windows/System32/config/SYSTEM.LOG*
+
+  - path: Windows/System32/config/DEFAULT
+    tools:
+      - name: regripper
+        extra:
+          all: on
+        output:
+          path: $OUTDIR/_regripper/all_default.txt
+      - name: regripper
+        extra:
+          all_tln: on
+        output:
+          path: $OUTDIR/_regripper/all_default_tln.txt
+
+  - Windows/System32/config/DEFAULT.LOG*
+
+  - path: Users/*/NTUSER.DAT
+    tools:
+      - name: print_filename_separated
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/mp2.txt
+      - name: regripper
+        extra:
+          plugin: mp2
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/mp2.txt
+          append: yes
+
+      - name: print_filename_separated
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/userassist.txt
+      - name: regripper
+        extra:
+          plugin: userassist
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/userassist.txt
+          append: yes
+
+      - name: print_filename_separated
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/recentdocs.txt
+      - name: regripper
+        extra:
+          plugin: recentdocs
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/recentdocs.txt
+          append: yes
+
+      - name: print_filename_separated
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/all_ntuser.txt
+      - name: regripper
+        extra:
+          all: on
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/all_ntuser.txt
+          append: yes
+
+      - name: print_filename_separated
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/all_ntuser_tln.txt
+      - name: regripper
+        extra:
+          all_tln: on
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/all_ntuser_tln.txt
+          append: yes
+
+  - Users/*/NTUSER.DAT.LOG*
+
+  - path: Users/*/AppData/Local/Microsoft/Windows/UsrClass.dat
+    tools:
+      - name: print_filename_separated
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/shellbags.txt
+      - name: regripper
+        extra:
+          plugin: shellbags
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/shellbags.txt
+          append: yes
+
+      - name: print_filename_separated
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/all_usrclass.txt
+      - name: regripper
+        extra:
+          all: on
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/all_usrclass.txt
+          append: yes
+
+      - name: print_filename_separated
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/all_usrclass_tln.txt
+      - name: regripper
+        extra:
+          all_tln: on
+        output:
+          path: $OUTDIR/_regripper/$USERNAME/all_usrclass_tln.txt
+          append: yes
+
+  - Users/*/AppData/Local/Microsoft/Windows/UsrClass.dat.LOG*
+
+  - path: Windows/ServiceProfiles/*/NTUSER.DAT
+    tools:
+      - name: print_filename_separated
+        output:
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/mp2.txt
+      - name: regripper
+        extra:
+          plugin: mp2
+        output:
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/mp2.txt
+          append: yes
+
+      - name: print_filename_separated
+        output:
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/userassist.txt
+      - name: regripper
+        extra:
+          plugin: userassist
+        output:
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/userassist.txt
+          append: yes
+
+      - name: print_filename_separated
+        output:
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/recentdocs.txt
+      - name: regripper
+        extra:
+          plugin: recentdocs
+        output:
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/recentdocs.txt
+          append: yes
+
+      - name: print_filename_separated
+        output:
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/all_ntuser.txt
+      - name: regripper
+        extra:
+          all: on
+        output:
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/all_ntuser.txt
+          append: yes
+
+      - name: print_filename_separated
+        output:
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/all_ntuser_tln.txt
+      - name: regripper
+        extra:
+          all_tln: on
+        output:
+          path: $OUTDIR/_regripper/ServiceProfile_$USERNAME/all_ntuser_tln.txt
+          append: yes
+
+  - Windows/ServiceProfiles/*/NTUSER.DAT.LOG*
+
+  # Remove this block cause we can't have srum_dump tool inside containers cause it's a GUI tool
+  # - path: Windows/System32/sru/SRUDB.dat
+  #   tools:
+  #     - name: mkdir
+  #       extra:
+  #         dir: $OUTDIR/_srum_dump
+  #       run_once: yes
+  #     - name: srum_dump
+  #       extra:
+  #         reg_hive: $OUTDIR/Windows/System32/config/SOFTWARE
+  #         xlsx_outfile: $OUTDIR/_srum_dump/srum_dump.xlsx
+  #         xlsx_template: $DIR_SRUM_DUMP/SRUM_TEMPLATE3.xlsx
+  #       requires:
+  #         - Windows/System32/config/SOFTWARE
+
+  - path: Windows/System32/winevt/Logs/*
+    tools:
+      - name: mkdir
+        extra:
+          dir: $OUTDIR/_evtx_dump
+        run_once: yes
+      - name: evtx_dump
+        extra:
+          format: xml
+          output: $OUTDIR/_evtx_dump/$FILENAME.xml
+        filter: "*.evtx"
+
+  - Windows/*.log
+  - Windows/INF/setupapi.dev.log
+  - Windows/System32/LogFiles
+  - Windows/Tasks/*
+  - Windows/System32/drivers/etc/hosts
+  - Windows/security/audit
+  - Windows/security/logs
+  - Windows/System32/LogFiles
+  - Windows/System32/SleepStudy
+  - ProgramData/Microsoft/Windows/PowerEfficiency Diagnostics
+  - Windows/ServiceProfiles/NetworkService/AppData/Local/Microsoft/Windows/DeliveryOptimization/Logs
+  - Windows/Minidump*.dmp
+  - Windows/Memory.dmp
