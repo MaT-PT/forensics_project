@@ -39,5 +39,4 @@ jobs:
       run: unzip DESKTOP-E01.zip -d images
 
     - name: Run Test
-      run: |
-        docker-compose -f tests/docker-compose.yml up --build --exit-code-from test
+      run: ./main.py -F=files.yaml images/20200918_0417_DESKTOP-SDN1RPT.E01
